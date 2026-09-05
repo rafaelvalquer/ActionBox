@@ -1,5 +1,9 @@
 package com.luminor.actionbox.navigation
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,6 +29,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -50,6 +55,8 @@ import com.luminor.actionbox.ui.agenda.AgendaScreen
 import com.luminor.actionbox.ui.capture.CaptureScreen
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.home.HomeScreen
+import com.luminor.actionbox.ui.motion.LocalNavAnimatedVisibilityScope
+import com.luminor.actionbox.ui.motion.LocalSharedTransitionScope
 import com.luminor.actionbox.ui.motion.MotionDuration
 import com.luminor.actionbox.ui.motion.pressScale
 import com.luminor.actionbox.ui.organize.OrganizeScreen
@@ -68,6 +75,7 @@ private val bottomDestinations = listOf(
     BottomDestination("saved", "Depois", ActionBoxIcons.Saved)
 )
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ActionBoxRoot(viewModel: ActionViewModel) {
     val navController = rememberNavController()
@@ -86,68 +94,105 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            if (currentRoute in rootRoutes) {
-                ActionBottomNavigation(
-                    selectedRoute = currentRoute,
-                    onSelect = { route ->
-                        navController.navigate(route) {
-                            popUpTo("today") { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+    SharedTransitionLayout {
+        val sharedScope = this
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbar) },
+            bottomBar = {
+                if (currentRoute in rootRoutes) {
+                    ActionBottomNavigation(
+                        selectedRoute = currentRoute,
+                        onSelect = { route ->
+                            navController.navigate(route) {
+                                popUpTo("today") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
                         }
+                    )
+                }
+            }
+        ) { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = "today",
+                modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
+                enterTransition = {
+                    fadeIn(tween(MotionDuration.Standard)) + slideInHorizontally(tween(MotionDuration.Standard)) { it / 12 }
+                },
+                exitTransition = {
+                    fadeOut(tween(MotionDuration.Fast)) + slideOutHorizontally(tween(MotionDuration.Fast)) { -it / 18 }
+                },
+                popEnterTransition = {
+                    fadeIn(tween(MotionDuration.Standard)) + slideInHorizontally(tween(MotionDuration.Standard)) { -it / 12 }
+                },
+                popExitTransition = {
+                    fadeOut(tween(MotionDuration.Fast)) + slideOutHorizontally(tween(MotionDuration.Fast)) { it / 18 }
+                }
+            ) {
+                composable("today") {
+                    SharedDestination(sharedScope, this) {
+                        HomeScreen(
+                            viewModel = viewModel,
+                            onSettings = { navController.navigate("settings") },
+                            onActionOpen = { navController.navigate("action/$it") }
+                        )
                     }
-                )
-            }
-        }
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = "today",
-            modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
-            enterTransition = {
-                fadeIn(tween(MotionDuration.Standard)) + slideInHorizontally(tween(MotionDuration.Standard)) { it / 12 }
-            },
-            exitTransition = {
-                fadeOut(tween(MotionDuration.Fast)) + slideOutHorizontally(tween(MotionDuration.Fast)) { -it / 18 }
-            },
-            popEnterTransition = {
-                fadeIn(tween(MotionDuration.Standard)) + slideInHorizontally(tween(MotionDuration.Standard)) { -it / 12 }
-            },
-            popExitTransition = {
-                fadeOut(tween(MotionDuration.Fast)) + slideOutHorizontally(tween(MotionDuration.Fast)) { it / 18 }
-            }
-        ) {
-            composable("today") {
-                HomeScreen(
-                    viewModel = viewModel,
-                    onSettings = { navController.navigate("settings") },
-                    onActionOpen = { navController.navigate("action/$it") }
-                )
-            }
-            composable("agenda") { AgendaScreen(viewModel, onActionOpen = { navController.navigate("action/$it") }) }
-            composable("capture") { CaptureScreen(viewModel) }
-            composable("organize") { OrganizeScreen(viewModel, onProjectOpen = { navController.navigate("project/$it") }) }
-            composable("saved") { SavedScreen(viewModel, onOpenDetail = { navController.navigate("saved/$it") }) }
-            composable("settings") { SettingsScreen(viewModel, onBack = { navController.popBackStack() }) }
-            composable("action/{id}") { entry ->
-                val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@composable
-                val all by viewModel.all.collectAsStateWithLifecycle()
-                val action = all.firstOrNull { it.id == id }
-                if (action != null) ActionDetailScreen(viewModel, action, onBack = { navController.popBackStack() })
-            }
-            composable("project/{id}") { entry ->
-                val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@composable
-                ProjectDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
-            }
-            composable("saved/{id}") { entry ->
-                val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@composable
-                SavedDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                }
+                composable("agenda") {
+                    SharedDestination(sharedScope, this) {
+                        AgendaScreen(viewModel, onActionOpen = { navController.navigate("action/$it") })
+                    }
+                }
+                composable("capture") { SharedDestination(sharedScope, this) { CaptureScreen(viewModel) } }
+                composable("organize") {
+                    SharedDestination(sharedScope, this) {
+                        OrganizeScreen(viewModel, onProjectOpen = { navController.navigate("project/$it") })
+                    }
+                }
+                composable("saved") {
+                    SharedDestination(sharedScope, this) {
+                        SavedScreen(viewModel, onOpenDetail = { navController.navigate("saved/$it") })
+                    }
+                }
+                composable("settings") { SharedDestination(sharedScope, this) { SettingsScreen(viewModel, onBack = { navController.popBackStack() }) } }
+                composable("action/{id}") { entry ->
+                    SharedDestination(sharedScope, this) {
+                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
+                        val all by viewModel.all.collectAsStateWithLifecycle()
+                        val action = all.firstOrNull { it.id == id }
+                        if (action != null) ActionDetailScreen(viewModel, action, onBack = { navController.popBackStack() })
+                    }
+                }
+                composable("project/{id}") { entry ->
+                    SharedDestination(sharedScope, this) {
+                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
+                        ProjectDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                    }
+                }
+                composable("saved/{id}") { entry ->
+                    SharedDestination(sharedScope, this) {
+                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
+                        SavedDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                    }
+                }
             }
         }
     }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun SharedDestination(
+    sharedScope: SharedTransitionScope,
+    animatedVisibilityScope: AnimatedVisibilityScope,
+    content: @Composable () -> Unit
+) {
+    CompositionLocalProvider(
+        LocalSharedTransitionScope provides sharedScope,
+        LocalNavAnimatedVisibilityScope provides animatedVisibilityScope,
+        content = content
+    )
 }
 
 @Composable

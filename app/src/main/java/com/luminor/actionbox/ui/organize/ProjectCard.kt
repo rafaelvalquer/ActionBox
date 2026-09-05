@@ -23,6 +23,8 @@ import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.ui.designsystem.ActionBoxColors
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
+import com.luminor.actionbox.ui.motion.SharedKeys
+import com.luminor.actionbox.ui.motion.actionSharedBounds
 
 @Composable
 fun ProjectRichCard(project: ProjectEntity, tasks: List<ActionEntity>, onOpen: () -> Unit) {
@@ -30,7 +32,7 @@ fun ProjectRichCard(project: ProjectEntity, tasks: List<ActionEntity>, onOpen: (
     val progress = if (tasks.isEmpty()) 0f else done.toFloat() / tasks.size
     val next = tasks.firstOrNull { it.status != ActionStatus.COMPLETED.name }
 
-    ActionCard(onClick = onOpen) {
+    ActionCard(modifier = Modifier.actionSharedBounds(SharedKeys.project(project.id)), onClick = onOpen) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Surface(shape = MaterialTheme.shapes.medium, color = ActionBoxColors.Project.copy(alpha = 0.12f)) {

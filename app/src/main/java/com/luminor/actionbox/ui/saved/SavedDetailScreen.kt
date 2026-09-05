@@ -27,6 +27,8 @@ import com.luminor.actionbox.domain.ExternalActions
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionButton
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
+import com.luminor.actionbox.ui.motion.SharedKeys
+import com.luminor.actionbox.ui.motion.actionSharedBounds
 
 @Composable
 fun SavedDetailScreen(viewModel: ActionViewModel, id: Long, onBack: () -> Unit) {
@@ -37,7 +39,13 @@ fun SavedDetailScreen(viewModel: ActionViewModel, id: Long, onBack: () -> Unit) 
 
     Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 760.dp).statusBarsPadding().padding(18.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .widthIn(max = 760.dp)
+                .statusBarsPadding()
+                .padding(18.dp)
+                .actionSharedBounds(SharedKeys.saved(id)),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

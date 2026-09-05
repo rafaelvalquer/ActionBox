@@ -28,6 +28,8 @@ import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionButton
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
+import com.luminor.actionbox.ui.motion.SharedKeys
+import com.luminor.actionbox.ui.motion.actionSharedBounds
 import java.time.LocalDate
 
 @Composable
@@ -42,7 +44,13 @@ fun ProjectDetailScreen(viewModel: ActionViewModel, projectId: Long, onBack: () 
 
     Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 760.dp).statusBarsPadding().padding(18.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .widthIn(max = 760.dp)
+                .statusBarsPadding()
+                .padding(18.dp)
+                .actionSharedBounds(SharedKeys.project(projectId)),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
