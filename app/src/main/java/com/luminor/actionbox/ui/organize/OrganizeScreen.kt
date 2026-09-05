@@ -27,12 +27,12 @@ import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.domain.RecurrenceType
-import com.luminor.actionbox.ui.designsystem.components.ActionCard
 import com.luminor.actionbox.ui.designsystem.components.ActionEmptyState
 import com.luminor.actionbox.ui.designsystem.components.ActionSegmentedControl
+import com.luminor.actionbox.ui.organize.notes.NotesBoard
 
 @Composable
-fun OrganizeScreen(viewModel: ActionViewModel, onProjectOpen: (Long) -> Unit) {
+fun OrganizeScreen(viewModel: ActionViewModel, onProjectOpen: (Long) -> Unit, onNoteOpen: (Long) -> Unit) {
     val all by viewModel.all.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val lists by viewModel.lists.collectAsStateWithLifecycle()
@@ -41,50 +41,39 @@ fun OrganizeScreen(viewModel: ActionViewModel, onProjectOpen: (Long) -> Unit) {
     val completions by viewModel.completions.collectAsStateWithLifecycle()
     var section by remember { mutableIntStateOf(0) }
 
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 920.dp).statusBarsPadding().padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Organizar", style = MaterialTheme.typography.headlineLarge)
-                    Text("Projetos, listas, rotinas e notas em um só lugar.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ActionSegmentedControl(listOf("Projetos", "Listas", "Rotinas", "Notas"), section, onSelected = { section = it })
-                }
-            }
+    Column(
+        modifier = Modifier.fillMaxSize().widthIn(max = 920.dp).statusBarsPadding().padding(horizontal = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("Organizar", style = MaterialTheme.typography.headlineLarge)
+            Text("Projetos, listas, rotinas e notas em um só lugar.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ActionSegmentedControl(listOf("Projetos", "Listas", "Rotinas", "Notas"), section, onSelected = { section = it })
+        }
 
-            when (section) {
-                0 -> {
-                    if (projects.isEmpty()) item { ActionEmptyState("📁", "Nenhum projeto", "Experimente: Projeto viagem: passagem, hotel e seguro.") }
-                    items(projects, key = { it.id }) { project ->
-                        ProjectRichCard(project, all.filter { it.projectId == project.id }, onOpen = { onProjectOpen(project.id) })
-                    }
-                }
-                1 -> {
-                    if (lists.isEmpty()) item { ActionEmptyState("☑️", "Nenhuma lista", "Experimente: Ir ao mercado e comprar carne, pão e leite.") }
-                    items(lists, key = { it.id }) { list ->
-                        ListRichCard(list, listItems.filter { it.listId == list.id }, viewModel)
-                    }
-                }
-                2 -> {
-                    val routines = all.filter { RecurrenceCalculator.recurrenceType(it) != RecurrenceType.NONE && it.status != ActionStatus.ARCHIVED.name }
-                    if (routines.isEmpty()) item { ActionEmptyState("🏋️", "Nenhuma rotina", "Crie algo recorrente como Academia segunda, quarta e sexta às 19h.") }
-                    items(routines, key = { "routine-${it.id}-${completions.size}" }) { action -> HabitRichCard(action, viewModel) }
-                }
-                else -> {
-                    if (notes.isEmpty()) item { ActionEmptyState("📝", "Nenhuma nota", "Guarde ideias e informações que não exigem uma ação.") }
-                    items(notes, key = { it.id }) { note ->
-                        ActionCard {
-                            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(note.title, style = MaterialTheme.typography.titleLarge)
-                                Text(note.content, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 5)
-                            }
+        if (section == 3) {
+            NotesBoard(notes = notes, viewModel = viewModel, onOpen = onNoteOpen)
+        } else {
+            Box(Modifier.weight(1f)) {
+                LazyColumn(modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    when (section) {
+                        0 -> {
+                            if (projects.isEmpty()) item { ActionEmptyState("📁", "Nenhum projeto", "Experimente: Projeto viagem: passagem, hotel e seguro.") }
+                            items(projects, key = { it.id }) { project -> ProjectRichCard(project, all.filter { it.projectId == project.id }, onOpen = { onProjectOpen(project.id) }) }
+                        }
+                        1 -> {
+                            if (lists.isEmpty()) item { ActionEmptyState("☑️", "Nenhuma lista", "Experimente: Ir ao mercado e comprar carne, pão e leite.") }
+                            items(lists, key = { it.id }) { list -> ListRichCard(list, listItems.filter { it.listId == list.id }, viewModel) }
+                        }
+                        2 -> {
+                            val routines = all.filter { RecurrenceCalculator.recurrenceType(it) != RecurrenceType.NONE && it.status != ActionStatus.ARCHIVED.name }
+                            if (routines.isEmpty()) item { ActionEmptyState("🏋️", "Nenhuma rotina", "Crie algo recorrente como Academia segunda, quarta e sexta às 19h.") }
+                            items(routines, key = { "routine-${it.id}-${completions.size}" }) { action -> HabitRichCard(action, viewModel) }
                         }
                     }
+                    item { Spacer(Modifier.height(28.dp)) }
                 }
             }
-            item { Spacer(Modifier.height(28.dp)) }
         }
     }
 }

@@ -58,6 +58,7 @@ import com.luminor.actionbox.ui.motion.MotionDuration
 import com.luminor.actionbox.ui.motion.pressScale
 import com.luminor.actionbox.ui.organize.OrganizeScreen
 import com.luminor.actionbox.ui.organize.ProjectDetailScreen
+import com.luminor.actionbox.ui.organize.notes.NoteDetailScreen
 import com.luminor.actionbox.ui.saved.SavedDetailScreen
 import com.luminor.actionbox.ui.saved.SavedScreen
 import com.luminor.actionbox.ui.settings.SettingsScreen
@@ -142,7 +143,11 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                 }
                 composable("organize") {
                     SharedDestination(sharedScope, this) {
-                        OrganizeScreen(viewModel, onProjectOpen = { navController.navigate("project/$it") })
+                        OrganizeScreen(
+                            viewModel = viewModel,
+                            onProjectOpen = { navController.navigate("project/$it") },
+                            onNoteOpen = { navController.navigate("note/$it") }
+                        )
                     }
                 }
                 composable("saved") {
@@ -157,6 +162,14 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                         val all by viewModel.all.collectAsStateWithLifecycle()
                         val action = all.firstOrNull { it.id == id }
                         if (action != null) ActionEditorScreen(viewModel, action, onBack = { navController.popBackStack() })
+                    }
+                }
+                composable("note/{id}") { entry ->
+                    SharedDestination(sharedScope, this) {
+                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
+                        val notes by viewModel.notes.collectAsStateWithLifecycle()
+                        val note = notes.firstOrNull { it.id == id }
+                        if (note != null) NoteDetailScreen(viewModel, note, onBack = { navController.popBackStack() })
                     }
                 }
                 composable("project/{id}") { entry ->
