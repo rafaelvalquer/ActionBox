@@ -13,12 +13,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -50,9 +48,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.luminor.actionbox.ActionViewModel
-import com.luminor.actionbox.ui.actions.ActionDetailScreen
+import com.luminor.actionbox.ui.actions.ActionEditorScreen
 import com.luminor.actionbox.ui.agenda.AgendaScreen
-import com.luminor.actionbox.ui.capture.CaptureScreen
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.home.HomeScreen
 import com.luminor.actionbox.ui.motion.LocalNavAnimatedVisibilityScope
@@ -65,12 +62,11 @@ import com.luminor.actionbox.ui.saved.SavedDetailScreen
 import com.luminor.actionbox.ui.saved.SavedScreen
 import com.luminor.actionbox.ui.settings.SettingsScreen
 
-private data class BottomDestination(val route: String, val label: String, val icon: ImageVector, val center: Boolean = false)
+private data class BottomDestination(val route: String, val label: String, val icon: ImageVector)
 
 private val bottomDestinations = listOf(
     BottomDestination("today", "Hoje", ActionBoxIcons.Home),
     BottomDestination("agenda", "Agenda", ActionBoxIcons.Agenda),
-    BottomDestination("capture", "Criar", ActionBoxIcons.Create, center = true),
     BottomDestination("organize", "Organizar", ActionBoxIcons.Organize),
     BottomDestination("saved", "Depois", ActionBoxIcons.Saved)
 )
@@ -144,7 +140,6 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                         AgendaScreen(viewModel, onActionOpen = { navController.navigate("action/$it") })
                     }
                 }
-                composable("capture") { SharedDestination(sharedScope, this) { CaptureScreen(viewModel) } }
                 composable("organize") {
                     SharedDestination(sharedScope, this) {
                         OrganizeScreen(viewModel, onProjectOpen = { navController.navigate("project/$it") })
@@ -161,7 +156,7 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                         val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
                         val all by viewModel.all.collectAsStateWithLifecycle()
                         val action = all.firstOrNull { it.id == id }
-                        if (action != null) ActionDetailScreen(viewModel, action, onBack = { navController.popBackStack() })
+                        if (action != null) ActionEditorScreen(viewModel, action, onBack = { navController.popBackStack() })
                     }
                 }
                 composable("project/{id}") { entry ->
@@ -199,15 +194,15 @@ private fun SharedDestination(
 private fun ActionBottomNavigation(selectedRoute: String?, onSelect: (String) -> Unit) {
     val haptic = LocalHapticFeedback.current
     Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp,
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp,
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.extraLarge
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.Bottom
+            verticalAlignment = Alignment.CenterVertically
         ) {
             bottomDestinations.forEach { item ->
                 val selected = selectedRoute == item.route
@@ -216,39 +211,35 @@ private fun ActionBottomNavigation(selectedRoute: String?, onSelect: (String) ->
                     label = "bottom-tint"
                 )
                 val scale by animateFloatAsState(if (selected) 1.06f else 1f, label = "bottom-scale")
-                val click = {
-                    if (!selected) {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onSelect(item.route)
-                    }
-                }
-
+                val indicatorScale by animateFloatAsState(if (selected) 1f else 0f, label = "bottom-indicator")
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .offset(y = if (item.center) (-10).dp else 0.dp)
                         .clip(MaterialTheme.shapes.medium)
-                        .clickable(onClick = click)
+                        .pressScale(0.97f)
+                        .clickable {
+                            if (!selected) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onSelect(item.route)
+                            }
+                        }
                         .semantics { this.selected = selected; contentDescription = item.label }
                         .padding(vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    if (item.center) {
-                        Surface(
-                            modifier = Modifier.size(52.dp).graphicsLayer { scaleX = scale; scaleY = scale }.pressScale(0.92f),
-                            shape = MaterialTheme.shapes.extraLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            shadowElevation = 8.dp
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(item.icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                            }
-                        }
-                    } else {
-                        Icon(item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp).graphicsLayer { scaleX = scale; scaleY = scale })
-                    }
-                    Text(item.label, style = MaterialTheme.typography.labelMedium, color = if (item.center) MaterialTheme.colorScheme.primary else tint)
+                    Icon(
+                        item.icon,
+                        contentDescription = null,
+                        tint = tint,
+                        modifier = Modifier.size(23.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+                    )
+                    Text(item.label, style = MaterialTheme.typography.labelMedium, color = tint)
+                    Surface(
+                        modifier = Modifier.size(width = 22.dp, height = 3.dp).graphicsLayer { scaleX = indicatorScale },
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    ) {}
                 }
             }
         }

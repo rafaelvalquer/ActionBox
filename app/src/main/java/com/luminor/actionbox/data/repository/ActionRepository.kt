@@ -19,6 +19,7 @@ class ActionRepository(private val dao: ActionDao) {
     val completions = dao.observeCompletions()
 
     suspend fun insert(entity: ActionEntity): Long = dao.insert(entity)
+    suspend fun update(entity: ActionEntity) = dao.update(entity)
     suspend fun insertProject(project: ProjectEntity): Long = dao.insertProject(project)
     suspend fun insertList(list: ActionListEntity): Long = dao.insertList(list)
     suspend fun insertListItem(item: ListItemEntity): Long = dao.insertListItem(item)
