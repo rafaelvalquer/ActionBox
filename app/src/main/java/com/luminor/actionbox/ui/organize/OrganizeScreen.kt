@@ -20,6 +20,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,7 +44,8 @@ import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.domain.RecurrenceType
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.YearMonth
+import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
@@ -110,17 +112,13 @@ fun OrganizeScreen(viewModel: ActionViewModel) {
 private fun ProjectCard(project: ProjectEntity, all: List<ActionEntity>, viewModel: ActionViewModel) {
     val tasks = all.filter { it.projectId == project.id }
     val done = tasks.count { it.status == ActionStatus.COMPLETED.name }
+    val progress = if (tasks.isEmpty()) 0f else done.toFloat() / tasks.size
     val readyToFinish = tasks.isNotEmpty() && done == tasks.size && project.completedAt == null
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        project.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        textDecoration = if (project.completedAt != null) TextDecoration.LineThrough else null
-                    )
+                    Text(project.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, textDecoration = if (project.completedAt != null) TextDecoration.LineThrough else null)
                     Text(
                         when {
                             project.completedAt != null -> "Projeto finalizado"
@@ -132,14 +130,11 @@ private fun ProjectCard(project: ProjectEntity, all: List<ActionEntity>, viewMod
                 }
                 Text(if (project.completedAt != null) "✓" else "▣", style = MaterialTheme.typography.titleLarge)
             }
+            if (tasks.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             tasks.take(8).forEach { task ->
                 Row(Modifier.fillMaxWidth().clickable { viewModel.toggleOccurrence(task, LocalDate.now()) }, verticalAlignment = Alignment.CenterVertically) {
                     Text(if (task.status == ActionStatus.COMPLETED.name) "✓" else "○")
-                    Text(
-                        task.title,
-                        modifier = Modifier.padding(start = 10.dp),
-                        textDecoration = if (task.status == ActionStatus.COMPLETED.name) TextDecoration.LineThrough else null
-                    )
+                    Text(task.title, modifier = Modifier.padding(start = 10.dp), textDecoration = if (task.status == ActionStatus.COMPLETED.name) TextDecoration.LineThrough else null)
                 }
             }
             if (readyToFinish) {
@@ -154,21 +149,18 @@ private fun ProjectCard(project: ProjectEntity, all: List<ActionEntity>, viewMod
 @Composable
 private fun ListCard(list: ActionListEntity, items: List<ListItemEntity>, viewModel: ActionViewModel) {
     val done = items.count { it.completedAt != null }
+    val progress = if (items.isEmpty()) 0f else done.toFloat() / items.size
     val readyToFinish = items.isNotEmpty() && done == items.size && list.completedAt == null
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text(
-                        list.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        textDecoration = if (list.completedAt != null) TextDecoration.LineThrough else null
-                    )
+                    Text(list.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, textDecoration = if (list.completedAt != null) TextDecoration.LineThrough else null)
                     Text(if (list.completedAt != null) "Lista finalizada" else "$done de ${items.size} itens", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(if (list.completedAt != null) "✓" else "☑", style = MaterialTheme.typography.titleLarge)
             }
+            if (items.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             items.forEach { item ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = item.completedAt != null, onCheckedChange = { viewModel.toggleListItem(item) })
@@ -187,28 +179,65 @@ private fun ListCard(list: ActionListEntity, items: List<ListItemEntity>, viewMo
 @Composable
 private fun RoutineCard(action: ActionEntity, viewModel: ActionViewModel) {
     val today = LocalDate.now()
-    val days = (6 downTo 0).map { today.minusDays(it.toLong()) }
-    val completed = days.count { viewModel.isCompletedOn(action, it) }
+    val month = YearMonth.from(today)
+    val occurrenceDates = (1..month.lengthOfMonth()).map { month.atDay(it) }.filter { RecurrenceCalculator.occursOn(action, it) && !it.isAfter(today) }
+    val completed = occurrenceDates.count { viewModel.isCompletedOn(action, it) }
+    val progress = if (occurrenceDates.isEmpty()) 0f else completed.toFloat() / occurrenceDates.size
+
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(action.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("$completed de 7 dias concluídos", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$completed de ${occurrenceDates.size} concluídos neste mês", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("↻", style = MaterialTheme.typography.titleLarge)
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                days.forEach { date ->
-                    val done = viewModel.isCompletedOn(action, date)
+            if (occurrenceDates.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+            Text(
+                month.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.labelLarge
+            )
+            HabitMonthGrid(action, month, today, viewModel)
+        }
+    }
+}
+
+@Composable
+private fun HabitMonthGrid(action: ActionEntity, month: YearMonth, today: LocalDate, viewModel: ActionViewModel) {
+    Row(Modifier.fillMaxWidth()) {
+        listOf("S", "T", "Q", "Q", "S", "S", "D").forEach { label ->
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+
+    val cells = MutableList<LocalDate?>(month.atDay(1).dayOfWeek.value - 1) { null }
+    repeat(month.lengthOfMonth()) { cells += month.atDay(it + 1) }
+    while (cells.size % 7 != 0) cells += null
+
+    cells.chunked(7).forEach { week ->
+        Row(Modifier.fillMaxWidth()) {
+            week.forEach { date ->
+                if (date == null) {
+                    Spacer(Modifier.weight(1f).height(42.dp))
+                } else {
+                    val occurs = RecurrenceCalculator.occursOn(action, date)
+                    val done = occurs && viewModel.isCompletedOn(action, date)
+                    val future = date.isAfter(today)
+                    var cellModifier = Modifier.weight(1f).height(42.dp).padding(2.dp)
+                    if (occurs && !future) cellModifier = cellModifier.clickable { viewModel.toggleOccurrence(action, date) }
                     Card(
-                        modifier = Modifier.clickable { viewModel.toggleOccurrence(action, date) },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = if (done) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                        modifier = cellModifier,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (done) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                        )
                     ) {
-                        Column(Modifier.padding(horizontal = 9.dp, vertical = 7.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(date.format(DateTimeFormatter.ofPattern("EE", Locale("pt", "BR"))).take(1).uppercase(), style = MaterialTheme.typography.labelSmall)
-                            Text(if (done) "✓" else date.dayOfMonth.toString(), fontWeight = FontWeight.Medium)
+                        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                            Text(date.dayOfMonth.toString(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (done) "✓" else if (!occurs) "·" else " ", style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

@@ -24,9 +24,17 @@ class ReminderReceiver : BroadcastReceiver() {
             try {
                 val action = ActionBoxDatabase.getInstance(context).actionDao().getById(id) ?: return@launch
                 if (RecurrenceCalculator.recurrenceType(action) != RecurrenceType.NONE) {
-                    val next = RecurrenceCalculator.nextOccurrence(action, LocalDateTime.now().plusMinutes(1)) ?: return@launch
-                    val trigger = next.minusMinutes((action.reminderMinutes ?: 0).toLong())
-                    ReminderScheduler(context).schedule(id, action.title, trigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+                    // A notificação pode disparar antes do horário da ocorrência. Avançamos além
+                    // desse horário para não reagendar a mesma ocorrência imediatamente.
+                    val offsetMinutes = (action.reminderMinutes ?: 0).toLong()
+                    val afterCurrentOccurrence = LocalDateTime.now().plusMinutes(offsetMinutes + 1)
+                    val next = RecurrenceCalculator.nextOccurrence(action, afterCurrentOccurrence) ?: return@launch
+                    val trigger = next.minusMinutes(offsetMinutes)
+                    ReminderScheduler(context).schedule(
+                        id,
+                        action.title,
+                        trigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    )
                 }
             } finally {
                 pendingResult.finish()

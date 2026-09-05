@@ -65,6 +65,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
     val navigateHome = _navigateHome.asSharedFlow()
 
     fun setInput(value: String) { _input.value = value }
+    fun showMessage(value: String) { _message.tryEmit(value) }
 
     fun clearInput() {
         _input.value = ""
@@ -158,6 +159,16 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
                 else -> createStandardAction(context, action)
             }
             if (action.type != ActionType.REPLY) clearInput()
+        }
+    }
+
+    fun saveDetectedAndOpenCalendar(context: Context) {
+        val action = _detected.value ?: return
+        if (action.type != ActionType.EVENT) return
+        viewModelScope.launch {
+            createStandardAction(context, action)
+            ExternalActions.openCalendar(context, action)
+            clearInput()
         }
     }
 
@@ -302,7 +313,10 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val completing = item.completedAt == null
             repository.setListItemCompleted(item.id, if (completing) System.currentTimeMillis() else null)
-            if (!completing) repository.setListCompleted(item.listId, null)
+            if (!completing) {
+                repository.setListCompleted(item.listId, null)
+                setListAgendaCompleted(item.listId, false)
+            }
         }
     }
 
@@ -318,11 +332,25 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
     fun finishList(id: Long) {
         viewModelScope.launch {
             repository.setListCompleted(id, System.currentTimeMillis())
+            setListAgendaCompleted(id, true)
             _message.emit("Lista finalizada")
         }
     }
 
-    fun reopenList(id: Long) { viewModelScope.launch { repository.setListCompleted(id, null) } }
+    fun reopenList(id: Long) {
+        viewModelScope.launch {
+            repository.setListCompleted(id, null)
+            setListAgendaCompleted(id, false)
+        }
+    }
+
+    private suspend fun setListAgendaCompleted(listId: Long, completed: Boolean) {
+        all.value
+            .filter { it.type == ActionType.LIST.name && it.metadata == listId.toString() }
+            .forEach { action ->
+                if (completed) repository.complete(action.id) else repository.reopen(action.id)
+            }
+    }
 
     fun archive(id: Long) { viewModelScope.launch { repository.archive(id) } }
 

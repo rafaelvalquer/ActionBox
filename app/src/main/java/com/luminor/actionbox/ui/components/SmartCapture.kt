@@ -9,17 +9,15 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +53,10 @@ fun SmartCapture(viewModel: ActionViewModel, expanded: Boolean = false) {
     val input by viewModel.input.collectAsStateWithLifecycle()
     val detected by viewModel.detected.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.saveDetected(context)
+        else viewModel.showMessage("Permita notificações para criar ações com aviso.")
+    }
 
     Card(
         shape = RoundedCornerShape(28.dp),
@@ -116,7 +117,7 @@ fun SmartCapture(viewModel: ActionViewModel, expanded: Boolean = false) {
                             shape = RoundedCornerShape(16.dp)
                         )
 
-                        if (action.type != ActionType.NOTE) {
+                        if (action.type in listOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT, ActionType.LIST)) {
                             ScheduleEditor(viewModel = viewModel, action = action)
                         }
 
@@ -142,28 +143,58 @@ fun SmartCapture(viewModel: ActionViewModel, expanded: Boolean = false) {
                             ItemsEditor(viewModel, action.items)
                         }
 
-                        Button(
-                            onClick = {
-                                val requiresPermission = action.type == ActionType.REMINDER || action.reminderMinutes != null
-                                if (requiresPermission && Build.VERSION.SDK_INT >= 33 &&
-                                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                        when (action.type) {
+                            ActionType.REPLY -> {
+                                viewModel.replyOptions(action.sourceText).forEach { option ->
+                                    FilledTonalButton(
+                                        onClick = { viewModel.copyReply(context, option.text) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(Modifier.fillMaxWidth()) {
+                                            Text(option.label, fontWeight = FontWeight.SemiBold)
+                                            Text(option.text, style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                }
+                            }
+                            else -> {
+                                Button(
+                                    onClick = {
+                                        val requiresPermission = action.type == ActionType.REMINDER || action.reminderMinutes != null
+                                        if (requiresPermission && Build.VERSION.SDK_INT >= 33 &&
+                                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                                        ) {
+                                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        } else {
+                                            viewModel.saveDetected(context)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    Text(
+                                        when (action.type) {
+                                            ActionType.LIST -> "Criar lista"
+                                            ActionType.PROJECT -> "Criar projeto"
+                                            ActionType.NOTE -> "Salvar nota"
+                                            ActionType.EVENT -> "Salvar compromisso"
+                                            ActionType.REMINDER -> "Programar lembrete"
+                                            else -> "Salvar"
+                                        }
+                                    )
                                 }
-                                viewModel.saveDetected(context)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                when (action.type) {
-                                    ActionType.LIST -> "Criar lista"
-                                    ActionType.PROJECT -> "Criar projeto"
-                                    ActionType.NOTE -> "Salvar nota"
-                                    ActionType.EVENT -> "Salvar compromisso"
-                                    ActionType.REMINDER -> "Programar lembrete"
-                                    else -> "Salvar"
+                                if (action.type == ActionType.EVENT) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.saveDetectedAndOpenCalendar(context) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) { Text("Salvar e adicionar ao calendário do celular") }
                                 }
-                            )
+                                if (action.type == ActionType.CONTACT) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.insertContact(context, action.metadata ?: action.content) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) { Text("Salvar nos contatos") }
+                                }
+                            }
                         }
                     }
                 }
@@ -215,35 +246,33 @@ private fun ScheduleEditor(viewModel: ActionViewModel, action: com.luminor.actio
         )
     }
 
-    if (action.type in listOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT, ActionType.LIST)) {
-        Text("Recorrência", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val options = listOf(
-                RecurrenceType.NONE to "Não repetir",
-                RecurrenceType.DAILY to "Todo dia",
-                RecurrenceType.WEEKLY to "Semanal",
-                RecurrenceType.MONTHLY to "Mensal"
-            )
-            items(options) { (value, label) ->
-                FilterChip(selected = action.recurrenceType == value, onClick = { viewModel.setRecurrence(value) }, label = { Text(label) })
+    Text("Recorrência", style = MaterialTheme.typography.labelLarge)
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val options = listOf(
+            RecurrenceType.NONE to "Não repetir",
+            RecurrenceType.DAILY to "Todo dia",
+            RecurrenceType.WEEKLY to "Semanal",
+            RecurrenceType.MONTHLY to "Mensal"
+        )
+        items(options) { (value, label) ->
+            FilterChip(selected = action.recurrenceType == value, onClick = { viewModel.setRecurrence(value) }, label = { Text(label) })
+        }
+    }
+
+    if (action.recurrenceType == RecurrenceType.WEEKLY) {
+        val days = listOf(1 to "S", 2 to "T", 3 to "Q", 4 to "Q", 5 to "S", 6 to "S", 7 to "D")
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(days) { (day, label) ->
+                FilterChip(selected = day in action.recurrenceDays, onClick = { viewModel.toggleRecurrenceDay(day) }, label = { Text(label) })
             }
         }
+    }
 
-        if (action.recurrenceType == RecurrenceType.WEEKLY) {
-            val days = listOf(1 to "S", 2 to "T", 3 to "Q", 4 to "Q", 5 to "S", 6 to "S", 7 to "D")
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(days) { (day, label) ->
-                    FilterChip(selected = day in action.recurrenceDays, onClick = { viewModel.toggleRecurrenceDay(day) }, label = { Text(label) })
-                }
-            }
-        }
-
-        Text("Aviso", style = MaterialTheme.typography.labelLarge)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val options = listOf(null to "Sem aviso", 0 to "Na hora", 10 to "10 min", 30 to "30 min", 60 to "1 hora")
-            items(options) { (value, label) ->
-                FilterChip(selected = action.reminderMinutes == value, onClick = { viewModel.setReminderMinutes(value) }, label = { Text(label) })
-            }
+    Text("Aviso", style = MaterialTheme.typography.labelLarge)
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val options = listOf(null to "Sem aviso", 0 to "Na hora", 10 to "10 min", 30 to "30 min", 60 to "1 hora")
+        items(options) { (value, label) ->
+            FilterChip(selected = action.reminderMinutes == value, onClick = { viewModel.setReminderMinutes(value) }, label = { Text(label) })
         }
     }
 }
