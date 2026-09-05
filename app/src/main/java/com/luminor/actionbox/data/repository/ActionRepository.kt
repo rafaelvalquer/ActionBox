@@ -24,6 +24,7 @@ class ActionRepository(private val dao: ActionDao) {
     suspend fun insertListItem(item: ListItemEntity): Long = dao.insertListItem(item)
     suspend fun insertCompletion(completion: ActionCompletionEntity): Long = dao.insertCompletion(completion)
     suspend fun complete(id: Long) = dao.complete(id)
+    suspend fun reopen(id: Long) = dao.reopen(id)
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun reschedule(id: Long, scheduledAt: Long) = dao.reschedule(id, scheduledAt)
     suspend fun setListItemCompleted(id: Long, completedAt: Long?) = dao.setListItemCompleted(id, completedAt)

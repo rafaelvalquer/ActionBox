@@ -35,7 +35,7 @@ interface ActionDao {
     @Query("SELECT * FROM action_completions ORDER BY completedAt DESC")
     fun observeCompletions(): Flow<List<ActionCompletionEntity>>
 
-    @Query("SELECT * FROM actions WHERE type IN ('REMINDER','TASK','EVENT') AND status = 'PENDING' AND scheduledAt IS NOT NULL")
+    @Query("SELECT * FROM actions WHERE type IN ('REMINDER','TASK','EVENT','LIST') AND status = 'PENDING' AND scheduledAt IS NOT NULL")
     suspend fun getPendingReminders(): List<ActionEntity>
 
     @Query("SELECT * FROM actions WHERE id = :id LIMIT 1")
@@ -58,6 +58,9 @@ interface ActionDao {
 
     @Query("UPDATE actions SET status = 'COMPLETED', completedAt = :completedAt WHERE id = :id")
     suspend fun complete(id: Long, completedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE actions SET status = 'PENDING', completedAt = NULL WHERE id = :id")
+    suspend fun reopen(id: Long)
 
     @Query("UPDATE actions SET status = 'ARCHIVED' WHERE id = :id")
     suspend fun archive(id: Long)
