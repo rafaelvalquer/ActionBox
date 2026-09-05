@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luminor.actionbox.navigation.ActionBoxRoot
-import com.luminor.actionbox.ui.theme.ActionBoxTheme
+import com.luminor.actionbox.ui.designsystem.ActionBoxTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: ActionViewModel by viewModels()
