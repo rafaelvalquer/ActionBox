@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +50,14 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
     var searchVisible by remember { mutableStateOf(false) }
     var menuNote by remember { mutableStateOf<ActionEntity?>(null) }
     var sortOpen by remember { mutableStateOf(false) }
+    var waitingForNewNote by remember { mutableStateOf(false) }
+
+    LaunchedEffect(notes.size) {
+        if (waitingForNewNote && notes.isNotEmpty()) {
+            waitingForNewNote = false
+            notes.maxByOrNull { it.createdAt }?.let { onOpen(it.id) }
+        }
+    }
 
     val filtered = notes.filter { note ->
         val matchesQuery = query.isBlank() || listOf(note.title, note.content, note.noteCategory.orEmpty()).any { it.contains(query, ignoreCase = true) }
@@ -82,6 +91,7 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
             }
             IconButton(onClick = { searchVisible = !searchVisible }) { Icon(Icons.Rounded.Search, contentDescription = "Buscar notas") }
             Surface(onClick = {
+                waitingForNewNote = true
                 viewModel.processInput("Nova nota")
                 viewModel.chooseType(ActionType.NOTE)
                 viewModel.saveDetected(context)
