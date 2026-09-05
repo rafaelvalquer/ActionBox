@@ -1,10 +1,10 @@
 package com.luminor.actionbox.navigation
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -40,7 +40,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -51,13 +50,13 @@ import com.luminor.actionbox.ui.agenda.AgendaScreen
 import com.luminor.actionbox.ui.capture.CaptureScreen
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.home.HomeScreen
+import com.luminor.actionbox.ui.motion.MotionDuration
+import com.luminor.actionbox.ui.motion.pressScale
 import com.luminor.actionbox.ui.organize.OrganizeScreen
 import com.luminor.actionbox.ui.organize.ProjectDetailScreen
 import com.luminor.actionbox.ui.saved.SavedDetailScreen
 import com.luminor.actionbox.ui.saved.SavedScreen
 import com.luminor.actionbox.ui.settings.SettingsScreen
-import com.luminor.actionbox.ui.motion.MotionDuration
-import com.luminor.actionbox.ui.motion.pressScale
 
 private data class BottomDestination(val route: String, val label: String, val icon: ImageVector, val center: Boolean = false)
 
