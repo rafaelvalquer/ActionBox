@@ -1,6 +1,7 @@
 package com.luminor.actionbox.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
 
@@ -29,5 +30,24 @@ class ActionDetectorTest {
 
     @Test fun detectsAddress() {
         assertEquals(ActionType.ADDRESS, ActionDetector.detect("Avenida Paulista, 1000, São Paulo", now).type)
+    }
+
+    @Test fun detectsShoppingListAndItems() {
+        val result = ActionDetector.detect("Ir ao mercado e comprar carne, pão e leite", now)
+        assertEquals(ActionType.LIST, result.type)
+        assertEquals(listOf("Carne", "Pão", "Leite"), result.items)
+    }
+
+    @Test fun detectsDailyRoutine() {
+        val result = ActionDetector.detect("Academia todos os dias às 19h", now)
+        assertEquals(ActionType.TASK, result.type)
+        assertEquals(RecurrenceType.DAILY, result.recurrenceType)
+        assertEquals(19, result.scheduledAt?.hour)
+    }
+
+    @Test fun detectsWeeklyRoutineDays() {
+        val result = ActionDetector.detect("Treinar segunda, quarta e sexta às 7h", now)
+        assertEquals(RecurrenceType.WEEKLY, result.recurrenceType)
+        assertTrue(result.recurrenceDays.containsAll(setOf(1, 3, 5)))
     }
 }
