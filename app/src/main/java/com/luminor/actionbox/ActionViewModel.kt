@@ -329,6 +329,71 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
 
     fun reopenProject(id: Long) { viewModelScope.launch { repository.setProjectCompleted(id, null) } }
 
+    fun saveProjectEdits(
+        project: ProjectEntity,
+        title: String,
+        description: String,
+        existingTaskTitles: Map<Long, String>,
+        newTaskTitles: List<String>,
+        deletedTaskIds: Set<Long>
+    ) {
+        viewModelScope.launch {
+            val normalizedTitle = title.trim()
+            if (normalizedTitle.isBlank()) {
+                _message.emit("O projeto precisa de um título")
+                return@launch
+            }
+
+            repository.updateProject(
+                project.copy(
+                    title = normalizedTitle,
+                    description = description.trim()
+                )
+            )
+
+            val projectTasks = all.value.filter { it.projectId == project.id }
+            projectTasks.filter { it.id in deletedTaskIds }.forEach { task ->
+                ReminderScheduler(getApplication()).cancel(task.id)
+                repository.delete(task.id)
+            }
+
+            projectTasks.filterNot { it.id in deletedTaskIds }.forEach { task ->
+                val updatedTitle = existingTaskTitles[task.id]?.trim().orEmpty()
+                if (updatedTitle.isNotBlank() && updatedTitle != task.title) {
+                    repository.update(
+                        task.copy(
+                            title = updatedTitle,
+                            content = updatedTitle,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+
+            val addedTasks = newTaskTitles.map { it.trim() }.filter { it.isNotBlank() }
+            addedTasks.forEach { taskTitle ->
+                repository.insert(
+                    ActionEntity(
+                        type = ActionType.TASK.name,
+                        title = taskTitle,
+                        content = taskTitle,
+                        sourceText = taskTitle,
+                        status = ActionStatus.PENDING.name,
+                        priority = ActionPriority.NORMAL.name,
+                        recurrenceType = RecurrenceType.NONE.name,
+                        projectId = project.id
+                    )
+                )
+            }
+
+            if (addedTasks.isNotEmpty() && project.completedAt != null) {
+                repository.setProjectCompleted(project.id, null)
+            }
+
+            _message.emit("Projeto atualizado")
+        }
+    }
+
     fun finishList(id: Long) {
         viewModelScope.launch {
             repository.setListCompleted(id, System.currentTimeMillis())
@@ -387,7 +452,14 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun deleteProject(id: Long) { viewModelScope.launch { repository.deleteProject(id) } }
+    fun deleteProject(id: Long) {
+        viewModelScope.launch {
+            all.value.filter { it.projectId == id }.forEach { ReminderScheduler(getApplication()).cancel(it.id) }
+            repository.deleteProject(id)
+            _message.emit("Projeto excluído")
+        }
+    }
+
     fun deleteList(id: Long) { viewModelScope.launch { repository.deleteList(id) } }
 
     fun addToSystemCalendar(context: Context, action: ActionEntity) {
