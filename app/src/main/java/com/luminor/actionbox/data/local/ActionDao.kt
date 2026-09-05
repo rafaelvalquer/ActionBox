@@ -51,6 +51,9 @@ interface ActionDao {
     @Insert
     suspend fun insertProject(project: ProjectEntity): Long
 
+    @Update
+    suspend fun updateProject(project: ProjectEntity)
+
     @Insert
     suspend fun insertList(list: ActionListEntity): Long
 

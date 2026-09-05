@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,7 @@ import java.time.ZoneId
 
 private enum class NoteSort(val label: String) { RECENT("Mais recentes"), OLDEST("Mais antigas"), TITLE("Título A-Z"), CATEGORY("Categoria"), COLOR("Cor") }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (Long) -> Unit) {
     val context = LocalContext.current
