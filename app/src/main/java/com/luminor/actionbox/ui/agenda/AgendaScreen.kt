@@ -255,7 +255,10 @@ private fun DayTimeline(date: LocalDate, entries: List<ActionEntity>, viewModel:
 private fun TimelineAction(action: ActionEntity, date: LocalDate, viewModel: ActionViewModel, hapticsEnabled: Boolean, onActionOpen: (Long) -> Unit) {
     val completed = viewModel.isCompletedOn(action, date)
     val color = if (completed) ActionBoxColors.Completed else actionTypeColor(action.type)
-    val time = action.scheduledAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) } ?: "—"
+    val time = action.scheduledAt?.let {
+        val localTime = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
+        if (localTime.hour == 0 && localTime.minute == 0) "—" else localTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+    } ?: "—"
     val haptic = LocalHapticFeedback.current
 
     Row(Modifier.fillMaxWidth().clickable { onActionOpen(action.id) }.padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {

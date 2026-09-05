@@ -46,7 +46,8 @@ fun TodayActionRow(
     val haptic = LocalHapticFeedback.current
     val color = if (completed) ActionBoxColors.Completed else actionTypeColor(action.type)
     val time = action.scheduledAt?.let {
-        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+        val localTime = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
+        if (localTime.hour == 0 && localTime.minute == 0) "—" else localTime.format(DateTimeFormatter.ofPattern("HH:mm"))
     } ?: "—"
 
     Surface(
