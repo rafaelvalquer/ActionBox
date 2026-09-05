@@ -1,13 +1,8 @@
 package com.luminor.actionbox.ui.home
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,247 +10,166 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
+import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
-import com.luminor.actionbox.domain.DetectedAction
-import com.luminor.actionbox.ui.components.ActionTypePill
+import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.ui.components.EmptyState
-import com.luminor.actionbox.ui.components.SectionTitle
+import com.luminor.actionbox.ui.components.SmartCapture
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun HomeScreen(viewModel: ActionViewModel, onSettings: () -> Unit) {
-    val input by viewModel.input.collectAsStateWithLifecycle()
-    val detected by viewModel.detected.collectAsStateWithLifecycle()
-    val pending by viewModel.pending.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val focus = LocalFocusManager.current
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val all by viewModel.all.collectAsStateWithLifecycle()
+    val today = LocalDate.now()
+    val scheduledToday = all
+        .filter { it.type in setOf(ActionType.TASK.name, ActionType.REMINDER.name, ActionType.EVENT.name, ActionType.LIST.name) }
+        .filter { RecurrenceCalculator.occursOn(it, today) }
+        .sortedBy { it.scheduledAt ?: Long.MAX_VALUE }
+    val inbox = all
+        .filter { it.type == ActionType.TASK.name && it.scheduledAt == null && it.status == ActionStatus.PENDING.name }
+        .take(4)
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text("ActionBox", style = MaterialTheme.typography.headlineMedium)
-                    Text("Resolva em poucos toques ✨", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                TextButton(onClick = onSettings) { Text("⚙️") }
-            }
-        }
-
-        item {
-            Card(
-                shape = RoundedCornerShape(26.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(Modifier.padding(18.dp)) {
-                    Text("O que você precisa resolver?", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = input,
-                        onValueChange = viewModel::setInput,
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 6,
-                        shape = RoundedCornerShape(18.dp),
-                        placeholder = { Text("Digite ou cole uma mensagem, link ou informação...") }
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                val pasted = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
-                                if (pasted.isNotBlank()) viewModel.processInput(pasted)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("📋 Colar") }
-                        Button(
-                            onClick = { focus.clearFocus(); viewModel.analyze() },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Analisar ✨") }
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .widthIn(max = 920.dp)
+                .padding(horizontal = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Hoje", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            today.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale("pt", "BR"))).replaceFirstChar { it.uppercase() },
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                    TextButton(onClick = onSettings) { Text("Ajustes") }
                 }
             }
-        }
 
-        item {
-            SectionTitle("Ações rápidas")
-            Spacer(Modifier.height(8.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(ActionType.entries) { type ->
-                    ActionTypePill(type = type, selected = detected?.type == type) {
-                        if (input.isBlank()) viewModel.setInput(defaultPrompt(type))
-                        viewModel.chooseType(type)
-                    }
+            item { SmartCapture(viewModel = viewModel) }
+
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SummaryCard("Hoje", scheduledToday.size.toString(), Modifier.weight(1f))
+                    SummaryCard("Concluídas", scheduledToday.count { viewModel.isCompletedOn(it, today) }.toString(), Modifier.weight(1f))
+                    SummaryCard("Sem data", inbox.size.toString(), Modifier.weight(1f))
                 }
             }
-        }
 
-        item {
-            AnimatedVisibility(visible = detected != null) {
-                detected?.let { action ->
-                    DetectionCard(
-                        action = action,
-                        viewModel = viewModel,
-                        onExecute = {
-                            if (action.type == ActionType.REMINDER && Build.VERSION.SDK_INT >= 33 &&
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                            ) {
-                                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            }
-                            viewModel.execute(context, action)
-                        }
-                    )
-                }
+            item {
+                Text("Seu dia", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             }
-        }
 
-        item {
-            SectionTitle("Para resolver")
-            Spacer(Modifier.height(6.dp))
-            if (pending.isEmpty()) {
-                EmptyState("✅", "Tudo resolvido", "Suas tarefas e lembretes pendentes aparecerão aqui.")
+            if (scheduledToday.isEmpty()) {
+                item { EmptyState("✓", "Dia livre", "Quando algo tiver data, aparecerá aqui.") }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    pending.take(4).forEach { item -> PendingMiniCard(item, onComplete = { viewModel.complete(item.id) }) }
+                items(scheduledToday.size, key = { scheduledToday[it].id }) { index ->
+                    TodayActionCard(scheduledToday[index], today, viewModel)
                 }
             }
-            Spacer(Modifier.height(18.dp))
+
+            if (inbox.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    Text("Sem data", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text("Coisas que você quer fazer, mas ainda não colocou na agenda.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                items(inbox.size, key = { "inbox-${inbox[it].id}" }) { index ->
+                    TodayActionCard(inbox[index], today, viewModel)
+                }
+            }
+
+            item { Spacer(Modifier.height(28.dp)) }
         }
     }
 }
 
 @Composable
-private fun DetectionCard(action: DetectedAction, viewModel: ActionViewModel, onExecute: () -> Unit) {
-    val context = LocalContext.current
+private fun SummaryCard(label: String, value: String, modifier: Modifier = Modifier) {
     Card(
-        modifier = Modifier.fillMaxWidth().animateContentSize(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.09f))
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(action.type.emoji, style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("Encontrei ${article(action.type)} ${action.type.label.lowercase()}", fontWeight = FontWeight.SemiBold)
-                    Text("Confiança ${action.confidence}%", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-            Text(action.title, style = MaterialTheme.typography.titleLarge)
-            action.scheduledAt?.let {
-                Text("📆 ${it.format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'às' HH:mm"))}")
-            }
-            action.sourceUrl?.let { Text(it, color = MaterialTheme.colorScheme.primary, maxLines = 1) }
-
-            Text("Alterar ação", style = MaterialTheme.typography.labelLarge)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                items(ActionType.entries) { type ->
-                    ActionTypePill(type = type, selected = action.type == type) { viewModel.chooseType(type) }
-                }
-            }
-
-            if (action.type == ActionType.REPLY) {
-                viewModel.replyOptions(action.sourceText).forEach { option ->
-                    FilledTonalButton(
-                        onClick = { viewModel.copyReply(context, option.text) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(Modifier.fillMaxWidth()) {
-                            Text(option.label, fontWeight = FontWeight.SemiBold)
-                            Text(option.text, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
-            } else {
-                Button(onClick = onExecute, modifier = Modifier.fillMaxWidth()) {
-                    Text(executeLabel(action.type))
-                }
-                if (action.type == ActionType.CONTACT) {
-                    OutlinedButton(
-                        onClick = { viewModel.insertContact(context, action.metadata ?: action.content) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("👤 Salvar contato") }
-                }
-            }
+        Column(Modifier.padding(14.dp)) {
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun PendingMiniCard(item: ActionEntity, onComplete: () -> Unit) {
-    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(if (item.type == "REMINDER") "⏰" else "✅")
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(item.title, fontWeight = FontWeight.Medium)
-                item.scheduledAt?.let {
-                    val dt = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDateTime()
-                    Text(dt.format(DateTimeFormatter.ofPattern("dd/MM · HH:mm")), color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun TodayActionCard(action: ActionEntity, date: LocalDate, viewModel: ActionViewModel) {
+    val completed = viewModel.isCompletedOn(action, date)
+    val time = action.scheduledAt?.let {
+        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+    }
+    val recurring = RecurrenceCalculator.recurrenceType(action).name != "NONE"
+
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable { viewModel.toggleOccurrence(action, date) },
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Text(if (completed) "✓" else actionTypeEmoji(action.type), modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp))
+            }
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                Text(
+                    action.title,
+                    fontWeight = FontWeight.Medium,
+                    textDecoration = if (completed) TextDecoration.LineThrough else null
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (time != null) Text(time, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                    if (recurring) Text("Recorrente", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    if (action.projectId != null) Text("Projeto", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            TextButton(onClick = onComplete) { Text("Concluir") }
+            Text(if (completed) "Feito" else "Marcar", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
         }
     }
 }
 
-private fun defaultPrompt(type: ActionType): String = when (type) {
-    ActionType.TASK -> "Criar tarefa: "
-    ActionType.REMINDER -> "Me lembra amanhã às 09h de "
-    ActionType.EVENT -> "Reunião amanhã às 14h sobre "
-    ActionType.NOTE -> "Nota: "
-    ActionType.READ_LATER -> "https://"
-    ActionType.ADDRESS -> "Avenida "
-    ActionType.CONTACT -> "Contato: "
-    ActionType.REPLY -> "Responder: "
+private fun actionTypeEmoji(type: String): String = when (type) {
+    ActionType.REMINDER.name -> "⏰"
+    ActionType.EVENT.name -> "◷"
+    ActionType.LIST.name -> "☑"
+    else -> "○"
 }
-
-private fun executeLabel(type: ActionType): String = when (type) {
-    ActionType.TASK -> "✅ Criar tarefa"
-    ActionType.REMINDER -> "⏰ Criar lembrete"
-    ActionType.EVENT -> "📅 Abrir calendário"
-    ActionType.NOTE -> "📝 Salvar nota"
-    ActionType.READ_LATER -> "🔖 Salvar para depois"
-    ActionType.ADDRESS -> "📍 Abrir endereço"
-    ActionType.CONTACT -> "📞 Abrir discador"
-    ActionType.REPLY -> "💬 Gerar resposta"
-}
-
-private fun article(type: ActionType) = if (type in listOf(ActionType.TASK, ActionType.NOTE, ActionType.REPLY)) "uma" else "um"

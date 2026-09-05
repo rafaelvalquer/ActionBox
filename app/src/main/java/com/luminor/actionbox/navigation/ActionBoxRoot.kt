@@ -18,8 +18,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.luminor.actionbox.ActionViewModel
-import com.luminor.actionbox.ui.actions.ActionsScreen
+import com.luminor.actionbox.ui.agenda.AgendaScreen
+import com.luminor.actionbox.ui.capture.CaptureScreen
 import com.luminor.actionbox.ui.home.HomeScreen
+import com.luminor.actionbox.ui.organize.OrganizeScreen
 import com.luminor.actionbox.ui.saved.SavedScreen
 import com.luminor.actionbox.ui.settings.SettingsScreen
 
@@ -30,18 +32,18 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
     val navController = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val bottom = listOf(
-        BottomDestination("home", "Início", "🏠"),
-        BottomDestination("actions", "Ações", "✅"),
+        BottomDestination("today", "Hoje", "⌂"),
+        BottomDestination("agenda", "Agenda", "▦"),
+        BottomDestination("capture", "Criar", "+"),
+        BottomDestination("organize", "Organizar", "▣"),
         BottomDestination("saved", "Depois", "🔖")
     )
 
-    LaunchedEffect(Unit) {
-        viewModel.message.collect { snackbar.showSnackbar(it) }
-    }
+    LaunchedEffect(Unit) { viewModel.message.collect { snackbar.showSnackbar(it) } }
     LaunchedEffect(Unit) {
         viewModel.navigateHome.collect {
-            navController.navigate("home") {
-                popUpTo("home") { inclusive = true }
+            navController.navigate("today") {
+                popUpTo("today") { inclusive = true }
                 launchSingleTop = true
             }
         }
@@ -62,7 +64,7 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                             selected = selected,
                             onClick = {
                                 navController.navigate(item.route) {
-                                    popUpTo("home") { saveState = true }
+                                    popUpTo("today") { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
@@ -75,9 +77,11 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
             }
         }
     ) { padding ->
-        NavHost(navController = navController, startDestination = "home", modifier = Modifier.padding(padding)) {
-            composable("home") { HomeScreen(viewModel, onSettings = { navController.navigate("settings") }) }
-            composable("actions") { ActionsScreen(viewModel) }
+        NavHost(navController = navController, startDestination = "today", modifier = Modifier.padding(padding)) {
+            composable("today") { HomeScreen(viewModel, onSettings = { navController.navigate("settings") }) }
+            composable("agenda") { AgendaScreen(viewModel) }
+            composable("capture") { CaptureScreen(viewModel) }
+            composable("organize") { OrganizeScreen(viewModel) }
             composable("saved") { SavedScreen(viewModel) }
             composable("settings") { SettingsScreen(viewModel, onBack = { navController.popBackStack() }) }
         }
