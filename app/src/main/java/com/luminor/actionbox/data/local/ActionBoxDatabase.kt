@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ListItemEntity::class,
         ActionCompletionEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class ActionBoxDatabase : RoomDatabase() {
@@ -33,7 +33,6 @@ abstract class ActionBoxDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE actions ADD COLUMN recurrenceDays TEXT")
                 db.execSQL("ALTER TABLE actions ADD COLUMN reminderMinutes INTEGER")
                 db.execSQL("ALTER TABLE actions ADD COLUMN projectId INTEGER")
-
                 db.execSQL("CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, description TEXT NOT NULL, createdAt INTEGER NOT NULL, archived INTEGER NOT NULL)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS action_lists (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, createdAt INTEGER NOT NULL, archived INTEGER NOT NULL)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS list_items (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, listId INTEGER NOT NULL, title TEXT NOT NULL, position INTEGER NOT NULL, completedAt INTEGER)")
@@ -49,6 +48,15 @@ abstract class ActionBoxDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE actions ADD COLUMN noteCategory TEXT")
+                db.execSQL("ALTER TABLE actions ADD COLUMN noteColor TEXT")
+                db.execSQL("ALTER TABLE actions ADD COLUMN isPinned INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE actions ADD COLUMN updatedAt INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): ActionBoxDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -56,7 +64,7 @@ abstract class ActionBoxDatabase : RoomDatabase() {
                     ActionBoxDatabase::class.java,
                     "actionbox.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

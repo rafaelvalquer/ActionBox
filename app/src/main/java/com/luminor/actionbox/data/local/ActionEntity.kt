@@ -22,5 +22,9 @@ data class ActionEntity(
     val recurrenceType: String? = null,
     val recurrenceDays: String? = null,
     val reminderMinutes: Int? = null,
-    val projectId: Long? = null
+    val projectId: Long? = null,
+    val noteCategory: String? = null,
+    val noteColor: String? = null,
+    val isPinned: Boolean = false,
+    val updatedAt: Long? = null
 )
