@@ -28,6 +28,8 @@ class ActionRepository(private val dao: ActionDao) {
     suspend fun archive(id: Long) = dao.archive(id)
     suspend fun reschedule(id: Long, scheduledAt: Long) = dao.reschedule(id, scheduledAt)
     suspend fun setListItemCompleted(id: Long, completedAt: Long?) = dao.setListItemCompleted(id, completedAt)
+    suspend fun setProjectCompleted(id: Long, completedAt: Long?) = dao.setProjectCompleted(id, completedAt)
+    suspend fun setListCompleted(id: Long, completedAt: Long?) = dao.setListCompleted(id, completedAt)
     suspend fun deleteCompletion(actionId: Long, occurrenceDate: String) = dao.deleteCompletion(actionId, occurrenceDate)
     suspend fun delete(id: Long) = dao.delete(id)
     suspend fun pendingReminders(): List<ActionEntity> = dao.getPendingReminders()

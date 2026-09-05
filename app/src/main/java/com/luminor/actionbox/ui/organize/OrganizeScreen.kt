@@ -18,9 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luminor.actionbox.ActionViewModel
@@ -107,20 +110,42 @@ fun OrganizeScreen(viewModel: ActionViewModel) {
 private fun ProjectCard(project: ProjectEntity, all: List<ActionEntity>, viewModel: ActionViewModel) {
     val tasks = all.filter { it.projectId == project.id }
     val done = tasks.count { it.status == ActionStatus.COMPLETED.name }
+    val readyToFinish = tasks.isNotEmpty() && done == tasks.size && project.completedAt == null
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
-                    Text(project.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text(if (tasks.isEmpty()) "Projeto sem tarefas" else "$done de ${tasks.size} concluídas", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        project.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = if (project.completedAt != null) TextDecoration.LineThrough else null
+                    )
+                    Text(
+                        when {
+                            project.completedAt != null -> "Projeto finalizado"
+                            tasks.isEmpty() -> "Projeto sem tarefas"
+                            else -> "$done de ${tasks.size} concluídas"
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text("▣", style = MaterialTheme.typography.titleLarge)
+                Text(if (project.completedAt != null) "✓" else "▣", style = MaterialTheme.typography.titleLarge)
             }
-            tasks.take(6).forEach { task ->
-                Row(Modifier.fillMaxWidth().clickable { viewModel.complete(task.id) }, verticalAlignment = Alignment.CenterVertically) {
+            tasks.take(8).forEach { task ->
+                Row(Modifier.fillMaxWidth().clickable { viewModel.toggleOccurrence(task, LocalDate.now()) }, verticalAlignment = Alignment.CenterVertically) {
                     Text(if (task.status == ActionStatus.COMPLETED.name) "✓" else "○")
-                    Text(task.title, modifier = Modifier.padding(start = 10.dp))
+                    Text(
+                        task.title,
+                        modifier = Modifier.padding(start = 10.dp),
+                        textDecoration = if (task.status == ActionStatus.COMPLETED.name) TextDecoration.LineThrough else null
+                    )
                 }
+            }
+            if (readyToFinish) {
+                FilledTonalButton(onClick = { viewModel.finishProject(project.id) }, modifier = Modifier.fillMaxWidth()) { Text("Finalizar projeto") }
+            } else if (project.completedAt != null) {
+                TextButton(onClick = { viewModel.reopenProject(project.id) }) { Text("Reabrir projeto") }
             }
         }
     }
@@ -129,20 +154,31 @@ private fun ProjectCard(project: ProjectEntity, all: List<ActionEntity>, viewMod
 @Composable
 private fun ListCard(list: ActionListEntity, items: List<ListItemEntity>, viewModel: ActionViewModel) {
     val done = items.count { it.completedAt != null }
+    val readyToFinish = items.isNotEmpty() && done == items.size && list.completedAt == null
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text(list.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Text("$done de ${items.size} itens", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        list.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        textDecoration = if (list.completedAt != null) TextDecoration.LineThrough else null
+                    )
+                    Text(if (list.completedAt != null) "Lista finalizada" else "$done de ${items.size} itens", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(if (items.isNotEmpty() && done == items.size) "✓" else "☑", style = MaterialTheme.typography.titleLarge)
+                Text(if (list.completedAt != null) "✓" else "☑", style = MaterialTheme.typography.titleLarge)
             }
             items.forEach { item ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = item.completedAt != null, onCheckedChange = { viewModel.toggleListItem(item) })
-                    Text(item.title)
+                    Text(item.title, textDecoration = if (item.completedAt != null) TextDecoration.LineThrough else null)
                 }
+            }
+            if (readyToFinish) {
+                FilledTonalButton(onClick = { viewModel.finishList(list.id) }, modifier = Modifier.fillMaxWidth()) { Text("Finalizar lista") }
+            } else if (list.completedAt != null) {
+                TextButton(onClick = { viewModel.reopenList(list.id) }) { Text("Reabrir lista") }
             }
         }
     }

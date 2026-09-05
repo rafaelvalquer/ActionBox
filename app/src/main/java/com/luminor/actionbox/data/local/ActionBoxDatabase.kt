@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ListItemEntity::class,
         ActionCompletionEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class ActionBoxDatabase : RoomDatabase() {
@@ -42,6 +42,13 @@ abstract class ActionBoxDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE projects ADD COLUMN completedAt INTEGER")
+                db.execSQL("ALTER TABLE action_lists ADD COLUMN completedAt INTEGER")
+            }
+        }
+
         fun getInstance(context: Context): ActionBoxDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -49,7 +56,7 @@ abstract class ActionBoxDatabase : RoomDatabase() {
                     ActionBoxDatabase::class.java,
                     "actionbox.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }

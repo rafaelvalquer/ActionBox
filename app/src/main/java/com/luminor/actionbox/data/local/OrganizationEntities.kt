@@ -10,7 +10,8 @@ data class ProjectEntity(
     val title: String,
     val description: String = "",
     val createdAt: Long = System.currentTimeMillis(),
-    val archived: Boolean = false
+    val archived: Boolean = false,
+    val completedAt: Long? = null
 )
 
 @Entity(tableName = "action_lists")
@@ -18,7 +19,8 @@ data class ActionListEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val createdAt: Long = System.currentTimeMillis(),
-    val archived: Boolean = false
+    val archived: Boolean = false,
+    val completedAt: Long? = null
 )
 
 @Entity(tableName = "list_items")

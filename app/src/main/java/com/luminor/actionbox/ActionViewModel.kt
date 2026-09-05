@@ -153,7 +153,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             when (action.type) {
                 ActionType.LIST -> createList(context, action)
-                ActionType.PROJECT -> createProject(context, action)
+                ActionType.PROJECT -> createProject(action)
                 ActionType.REPLY -> Unit
                 else -> createStandardAction(context, action)
             }
@@ -204,7 +204,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
         _message.emit("Lista criada com ${action.items.size} itens")
     }
 
-    private suspend fun createProject(context: Context, action: DetectedAction) {
+    private suspend fun createProject(action: DetectedAction) {
         val projectId = repository.insertProject(ProjectEntity(title = action.title.ifBlank { "Novo projeto" }, description = action.description))
         action.items.forEach { item ->
             val child = action.copy(
@@ -273,7 +273,12 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleOccurrence(action: ActionEntity, date: LocalDate) {
         viewModelScope.launch {
             if (RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) {
-                if (action.status == ActionStatus.COMPLETED.name) repository.reopen(action.id) else repository.complete(action.id)
+                if (action.status == ActionStatus.COMPLETED.name) {
+                    repository.reopen(action.id)
+                    action.projectId?.let { repository.setProjectCompleted(it, null) }
+                } else {
+                    repository.complete(action.id)
+                }
             } else {
                 markOccurrence(action, date, !isCompletedOn(action, date))
             }
@@ -295,9 +300,29 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
 
     fun toggleListItem(item: ListItemEntity) {
         viewModelScope.launch {
-            repository.setListItemCompleted(item.id, if (item.completedAt == null) System.currentTimeMillis() else null)
+            val completing = item.completedAt == null
+            repository.setListItemCompleted(item.id, if (completing) System.currentTimeMillis() else null)
+            if (!completing) repository.setListCompleted(item.listId, null)
         }
     }
+
+    fun finishProject(id: Long) {
+        viewModelScope.launch {
+            repository.setProjectCompleted(id, System.currentTimeMillis())
+            _message.emit("Projeto finalizado")
+        }
+    }
+
+    fun reopenProject(id: Long) { viewModelScope.launch { repository.setProjectCompleted(id, null) } }
+
+    fun finishList(id: Long) {
+        viewModelScope.launch {
+            repository.setListCompleted(id, System.currentTimeMillis())
+            _message.emit("Lista finalizada")
+        }
+    }
+
+    fun reopenList(id: Long) { viewModelScope.launch { repository.setListCompleted(id, null) } }
 
     fun archive(id: Long) { viewModelScope.launch { repository.archive(id) } }
 

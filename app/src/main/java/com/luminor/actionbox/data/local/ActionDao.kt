@@ -23,10 +23,10 @@ interface ActionDao {
     @Query("SELECT * FROM actions WHERE status = 'COMPLETED' ORDER BY COALESCE(completedAt, createdAt) DESC LIMIT 100")
     fun observeHistory(): Flow<List<ActionEntity>>
 
-    @Query("SELECT * FROM projects WHERE archived = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM projects WHERE archived = 0 ORDER BY completedAt IS NOT NULL, createdAt DESC")
     fun observeProjects(): Flow<List<ProjectEntity>>
 
-    @Query("SELECT * FROM action_lists WHERE archived = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM action_lists WHERE archived = 0 ORDER BY completedAt IS NOT NULL, createdAt DESC")
     fun observeLists(): Flow<List<ActionListEntity>>
 
     @Query("SELECT * FROM list_items ORDER BY listId, position, id")
@@ -70,6 +70,12 @@ interface ActionDao {
 
     @Query("UPDATE list_items SET completedAt = :completedAt WHERE id = :id")
     suspend fun setListItemCompleted(id: Long, completedAt: Long?)
+
+    @Query("UPDATE projects SET completedAt = :completedAt WHERE id = :id")
+    suspend fun setProjectCompleted(id: Long, completedAt: Long?)
+
+    @Query("UPDATE action_lists SET completedAt = :completedAt WHERE id = :id")
+    suspend fun setListCompleted(id: Long, completedAt: Long?)
 
     @Query("DELETE FROM action_completions WHERE actionId = :actionId AND occurrenceDate = :occurrenceDate")
     suspend fun deleteCompletion(actionId: Long, occurrenceDate: String)
