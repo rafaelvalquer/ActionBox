@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,41 +64,41 @@ fun OrganizeScreen(viewModel: ActionViewModel) {
                 }
             }
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = section == "PROJECTS", onClick = { section = "PROJECTS" }, label = { Text("Projetos") })
-                    FilterChip(selected = section == "LISTS", onClick = { section = "LISTS" }, label = { Text("Listas") })
-                    FilterChip(selected = section == "ROUTINES", onClick = { section = "ROUTINES" }, label = { Text("Rotinas") })
-                    FilterChip(selected = section == "NOTES", onClick = { section = "NOTES" }, label = { Text("Notas") })
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { FilterChip(selected = section == "PROJECTS", onClick = { section = "PROJECTS" }, label = { Text("Projetos") }) }
+                    item { FilterChip(selected = section == "LISTS", onClick = { section = "LISTS" }, label = { Text("Listas") }) }
+                    item { FilterChip(selected = section == "ROUTINES", onClick = { section = "ROUTINES" }, label = { Text("Rotinas") }) }
+                    item { FilterChip(selected = section == "NOTES", onClick = { section = "NOTES" }, label = { Text("Notas") }) }
                 }
             }
 
             when (section) {
                 "PROJECTS" -> {
                     if (projects.isEmpty()) item { EmptyOrganization("Nenhum projeto", "Crie algo como “Projeto viagem: passagem, hotel, seguro”.") }
-                    items(projects.size, key = { projects[it].id }) { index -> ProjectCard(projects[index], all, viewModel) }
+                    items(projects, key = { it.id }) { project -> ProjectCard(project, all, viewModel) }
                 }
                 "LISTS" -> {
                     if (lists.isEmpty()) item { EmptyOrganization("Nenhuma lista", "Experimente “Ir ao mercado e comprar carne, pão e leite”.") }
-                    items(lists.size, key = { lists[it].id }) { index -> ListCard(lists[index], listItems.filter { it.listId == lists[index].id }, viewModel) }
+                    items(lists, key = { it.id }) { list -> ListCard(list, listItems.filter { it.listId == list.id }, viewModel) }
                 }
                 "ROUTINES" -> {
                     val routines = all.filter { RecurrenceCalculator.recurrenceType(it) != RecurrenceType.NONE && it.status != ActionStatus.ARCHIVED.name }
                     if (routines.isEmpty()) item { EmptyOrganization("Nenhuma rotina", "Crie uma tarefa recorrente como “Academia todos os dias às 19h”.") }
-                    items(routines.size, key = { routines[it].id }) { index -> RoutineCard(routines[index], viewModel) }
+                    items(routines, key = { it.id }) { action -> RoutineCard(action, viewModel) }
                 }
                 else -> {
                     if (notes.isEmpty()) item { EmptyOrganization("Nenhuma nota", "Guarde ideias e informações que não exigem uma ação.") }
-                    items(notes.size, key = { notes[it].id }) { index ->
+                    items(notes, key = { it.id }) { note ->
                         Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                             Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                                Text(notes[index].title, fontWeight = FontWeight.SemiBold)
-                                Text(notes[index].content, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(note.title, fontWeight = FontWeight.SemiBold)
+                                Text(note.content, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 }
             }
-            item { Spacer(Modifier.padding(bottom = 22.dp)) }
+            item { Spacer(Modifier.height(22.dp)) }
         }
     }
 }

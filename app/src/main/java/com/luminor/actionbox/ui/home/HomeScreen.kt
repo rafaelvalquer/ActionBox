@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -88,16 +89,12 @@ fun HomeScreen(viewModel: ActionViewModel, onSettings: () -> Unit) {
                 }
             }
 
-            item {
-                Text("Seu dia", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            }
+            item { Text("Seu dia", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold) }
 
             if (scheduledToday.isEmpty()) {
                 item { EmptyState("✓", "Dia livre", "Quando algo tiver data, aparecerá aqui.") }
             } else {
-                items(scheduledToday.size, key = { scheduledToday[it].id }) { index ->
-                    TodayActionCard(scheduledToday[index], today, viewModel)
-                }
+                items(scheduledToday, key = { it.id }) { action -> TodayActionCard(action, today, viewModel) }
             }
 
             if (inbox.isNotEmpty()) {
@@ -106,9 +103,7 @@ fun HomeScreen(viewModel: ActionViewModel, onSettings: () -> Unit) {
                     Text("Sem data", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     Text("Coisas que você quer fazer, mas ainda não colocou na agenda.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                items(inbox.size, key = { "inbox-${inbox[it].id}" }) { index ->
-                    TodayActionCard(inbox[index], today, viewModel)
-                }
+                items(inbox, key = { "inbox-${it.id}" }) { action -> TodayActionCard(action, today, viewModel) }
             }
 
             item { Spacer(Modifier.height(28.dp)) }
@@ -118,11 +113,7 @@ fun HomeScreen(viewModel: ActionViewModel, onSettings: () -> Unit) {
 
 @Composable
 private fun SummaryCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
+    Card(modifier = modifier, shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(14.dp)) {
             Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -133,9 +124,7 @@ private fun SummaryCard(label: String, value: String, modifier: Modifier = Modif
 @Composable
 private fun TodayActionCard(action: ActionEntity, date: LocalDate, viewModel: ActionViewModel) {
     val completed = viewModel.isCompletedOn(action, date)
-    val time = action.scheduledAt?.let {
-        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
-    }
+    val time = action.scheduledAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm")) }
     val recurring = RecurrenceCalculator.recurrenceType(action).name != "NONE"
 
     Card(
@@ -144,18 +133,11 @@ private fun TodayActionCard(action: ActionEntity, date: LocalDate, viewModel: Ac
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-            ) {
+            Surface(shape = RoundedCornerShape(14.dp), color = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant) {
                 Text(if (completed) "✓" else actionTypeEmoji(action.type), modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp))
             }
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(
-                    action.title,
-                    fontWeight = FontWeight.Medium,
-                    textDecoration = if (completed) TextDecoration.LineThrough else null
-                )
+                Text(action.title, fontWeight = FontWeight.Medium, textDecoration = if (completed) TextDecoration.LineThrough else null)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (time != null) Text(time, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                     if (recurring) Text("Recorrente", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
