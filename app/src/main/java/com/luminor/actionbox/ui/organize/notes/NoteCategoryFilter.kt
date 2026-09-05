@@ -18,7 +18,7 @@ fun NoteCategoryFilter(selected: String, onSelected: (String) -> Unit) {
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        listOf("Todas", "Fixadas") + DefaultNoteCategories.forEach { category ->
+        (listOf("Todas", "Fixadas") + DefaultNoteCategories).forEach { category ->
             FilterChip(selected = selected == category, onClick = { onSelected(category) }, label = { Text(category) })
         }
     }
