@@ -44,6 +44,8 @@ import com.luminor.actionbox.ui.designsystem.ActionBoxColors
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
 import com.luminor.actionbox.ui.designsystem.components.ActionEmptyState
+import com.luminor.actionbox.ui.motion.SharedKeys
+import com.luminor.actionbox.ui.motion.actionSharedBounds
 import java.time.Duration
 import java.time.Instant
 
@@ -102,7 +104,7 @@ private fun SavedSwipeCard(item: ActionEntity, viewModel: ActionViewModel, hapti
 @Composable
 private fun SavedCard(item: ActionEntity, viewModel: ActionViewModel, context: Context, onOpen: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    ActionCard(onClick = onOpen) {
+    ActionCard(modifier = Modifier.actionSharedBounds(SharedKeys.saved(item.id)), onClick = onOpen) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(categoryEmoji(item.metadata), style = MaterialTheme.typography.headlineMedium)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {

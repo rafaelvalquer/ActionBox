@@ -26,6 +26,8 @@ import com.luminor.actionbox.ui.designsystem.ActionBoxColors
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.actionTypeColor
 import com.luminor.actionbox.ui.motion.AnimatedCheck
+import com.luminor.actionbox.ui.motion.SharedKeys
+import com.luminor.actionbox.ui.motion.actionSharedBounds
 import com.luminor.actionbox.ui.motion.pressScale
 import java.time.Instant
 import java.time.LocalDate
@@ -44,11 +46,16 @@ fun TodayActionRow(
     val haptic = LocalHapticFeedback.current
     val color = if (completed) ActionBoxColors.Completed else actionTypeColor(action.type)
     val time = action.scheduledAt?.let {
-        Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime().format(DateTimeFormatter.ofPattern("HH:mm"))
+        val localTime = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
+        if (localTime.hour == 0 && localTime.minute == 0) "—" else localTime.format(DateTimeFormatter.ofPattern("HH:mm"))
     } ?: "—"
 
     Surface(
-        modifier = Modifier.pressScale().clickable(onClick = onOpen).animateContentSize(),
+        modifier = Modifier
+            .actionSharedBounds(SharedKeys.action(action.id))
+            .pressScale()
+            .clickable(onClick = onOpen)
+            .animateContentSize(),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp

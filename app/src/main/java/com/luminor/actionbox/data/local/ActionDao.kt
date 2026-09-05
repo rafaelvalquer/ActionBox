@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -43,6 +44,9 @@ interface ActionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: ActionEntity): Long
+
+    @Update
+    suspend fun update(entity: ActionEntity)
 
     @Insert
     suspend fun insertProject(project: ProjectEntity): Long

@@ -352,6 +352,32 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
             }
     }
 
+    fun updateAction(context: Context, original: ActionEntity, updated: ActionEntity) {
+        viewModelScope.launch {
+            val scheduler = ReminderScheduler(context.applicationContext)
+            scheduler.cancel(original.id)
+            val normalized = updated.copy(id = original.id)
+            repository.update(normalized)
+            scheduleIfNeeded(context, normalized)
+            _message.emit("Ação atualizada")
+        }
+    }
+
+    fun duplicateAction(context: Context, original: ActionEntity) {
+        viewModelScope.launch {
+            val duplicate = original.copy(
+                id = 0,
+                title = "${original.title} (cópia)",
+                createdAt = System.currentTimeMillis(),
+                completedAt = null,
+                status = ActionStatus.PENDING.name
+            )
+            val id = repository.insert(duplicate)
+            scheduleIfNeeded(context, duplicate.copy(id = id))
+            _message.emit("Ação duplicada")
+        }
+    }
+
     fun archive(id: Long) { viewModelScope.launch { repository.archive(id) } }
 
     fun delete(id: Long) {

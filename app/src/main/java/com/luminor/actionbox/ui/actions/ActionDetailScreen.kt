@@ -37,6 +37,8 @@ import com.luminor.actionbox.ui.designsystem.actionTypeColor
 import com.luminor.actionbox.ui.designsystem.components.ActionBadge
 import com.luminor.actionbox.ui.designsystem.components.ActionButton
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
+import com.luminor.actionbox.ui.motion.SharedKeys
+import com.luminor.actionbox.ui.motion.actionSharedBounds
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -54,7 +56,13 @@ fun ActionDetailScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
 
     Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 760.dp).statusBarsPadding().padding(18.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .widthIn(max = 760.dp)
+                .statusBarsPadding()
+                .padding(18.dp)
+                .actionSharedBounds(SharedKeys.action(action.id)),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
