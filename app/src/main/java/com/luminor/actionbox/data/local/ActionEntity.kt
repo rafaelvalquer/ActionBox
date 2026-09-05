@@ -15,5 +15,12 @@ data class ActionEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
     val status: String,
-    val metadata: String? = null
+    val metadata: String? = null,
+    val description: String? = null,
+    val endAt: Long? = null,
+    val priority: String? = null,
+    val recurrenceType: String? = null,
+    val recurrenceDays: String? = null,
+    val reminderMinutes: Int? = null,
+    val projectId: Long? = null
 )
