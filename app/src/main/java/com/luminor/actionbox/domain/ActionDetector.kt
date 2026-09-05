@@ -20,7 +20,8 @@ object ActionDetector {
         fun score(type: ActionType, points: Int) { scores[type] = scores.getValue(type) + points }
         fun containsAny(vararg terms: String) = terms.any { normalized.contains(it) }
 
-        val explicitList = items.size >= 2 && containsAny("lista", "checklist", "mercado", "compras")
+        val hasListKeyword = Regex("\\b(?:lista|checklist|mercado|compras)\\b").containsMatchIn(normalized)
+        val explicitList = items.size >= 2 && hasListKeyword
         if (explicitList) score(ActionType.LIST, 95)
         if (containsAny("projeto", "planejar viagem", "organizar viagem", "reforma", "planejar festa")) score(ActionType.PROJECT, 82)
 
@@ -106,8 +107,8 @@ object ActionDetector {
     private fun extractItems(source: String, normalized: String): List<String> {
         val buyMatch = Regex("(?i)\\bcomprar\\b").find(source)
         val listTail = when {
-            buyMatch != null && "mercado" in normalized -> source.substring(buyMatch.range.last + 1)
-            ":" in source && listOf("lista", "checklist", "projeto").any { it in normalized } -> source.substringAfter(':')
+            buyMatch != null && Regex("\\bmercado\\b").containsMatchIn(normalized) -> source.substring(buyMatch.range.last + 1)
+            ":" in source && Regex("\\b(?:lista|checklist|projeto)\\b").containsMatchIn(normalized) -> source.substringAfter(':')
             else -> source
         }
         val parts = listTail.split(Regex("\\s*(?:,|;|\\n|\\be\\b)\\s*", RegexOption.IGNORE_CASE))
@@ -121,7 +122,7 @@ object ActionDetector {
         ActionType.TASK, ActionType.REMINDER -> cleanCommand(source).ifBlank { if (type == ActionType.TASK) "Nova tarefa" else "Novo lembrete" }
         ActionType.EVENT -> cleanEvent(source).ifBlank { "Novo compromisso" }
         ActionType.NOTE -> source.lineSequence().firstOrNull()?.take(60).orEmpty().ifBlank { "Nova nota" }
-        ActionType.LIST -> if (DateTimeParser.normalize(source).contains("mercado")) "Mercado" else cleanCommand(source).substringBefore(':').take(60).ifBlank { "Nova lista" }
+        ActionType.LIST -> if (Regex("\\bmercado\\b").containsMatchIn(DateTimeParser.normalize(source))) "Mercado" else cleanCommand(source).substringBefore(':').take(60).ifBlank { "Nova lista" }
         ActionType.PROJECT -> cleanCommand(source).substringBefore(':').take(60).ifBlank { "Novo projeto" }
         ActionType.READ_LATER -> when {
             url?.contains("youtube", true) == true || url?.contains("youtu.be", true) == true -> "Vídeo para assistir"

@@ -30,11 +30,11 @@ object DateTimeParser {
     }
 
     private fun parseRelative(text: String, now: LocalDateTime): LocalDateTime? {
-        Regex("\\b(?:daqui\\s+a?|em)\\s+(\\d+)\\s*(minuto|minutos|min|hora|horas|h|dia|dias)\\b").find(text)?.let { m ->
+        Regex("\\b(?:daqui(?:\\s+a)?|em)\\s+(\\d+)\\s*(minutos?|min|horas?|h|dias?)\\b").find(text)?.let { m ->
             val amount = m.groupValues[1].toLong()
-            return when (m.groupValues[2]) {
-                "minuto", "minutos", "min" -> now.plusMinutes(amount)
-                "hora", "horas", "h" -> now.plusHours(amount)
+            return when (val unit = m.groupValues[2]) {
+                "min", "minuto", "minutos" -> now.plusMinutes(amount)
+                "h", "hora", "horas" -> now.plusHours(amount)
                 else -> now.plusDays(amount)
             }.withSecond(0).withNano(0)
         }
