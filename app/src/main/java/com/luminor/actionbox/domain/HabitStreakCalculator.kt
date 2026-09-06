@@ -8,13 +8,23 @@ object HabitStreakCalculator {
         action: ActionEntity,
         today: LocalDate,
         isCompleted: (LocalDate) -> Boolean
+    ): Int = currentStreak(
+        today = today,
+        occursOn = { RecurrenceCalculator.occursOn(action, it) },
+        isCompleted = isCompleted
+    )
+
+    fun currentStreak(
+        today: LocalDate,
+        occursOn: (LocalDate) -> Boolean,
+        isCompleted: (LocalDate) -> Boolean
     ): Int {
         var cursor = today
         var latestOccurrenceFound = false
         var streak = 0
 
         repeat(366) {
-            if (RecurrenceCalculator.occursOn(action, cursor)) {
+            if (occursOn(cursor)) {
                 if (!latestOccurrenceFound) {
                     latestOccurrenceFound = true
                     if (!isCompleted(cursor)) return 0
