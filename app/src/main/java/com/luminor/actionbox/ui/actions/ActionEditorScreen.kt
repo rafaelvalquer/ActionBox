@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,6 +36,7 @@ import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.ActionPriority
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
+import com.luminor.actionbox.domain.OrganizationOwnerType
 import com.luminor.actionbox.domain.RecurrenceType
 import com.luminor.actionbox.ui.actions.components.EditorDivider
 import com.luminor.actionbox.ui.actions.components.EditorHeader
@@ -50,6 +52,8 @@ import com.luminor.actionbox.ui.actions.sheets.TimeReminderSheet
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.motion.SharedKeys
 import com.luminor.actionbox.ui.motion.actionSharedBounds
+import com.luminor.actionbox.ui.relations.RelatedNotesSection
+import com.luminor.actionbox.ui.tags.TagPickerBottomSheet
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -57,18 +61,32 @@ import java.time.format.DateTimeFormatter
 private enum class EditorSheet { TYPE, DATE, TIME, RECURRENCE, PRIORITY, NOTES }
 
 @Composable
-fun ActionEditorScreen(viewModel: ActionViewModel, action: ActionEntity, onBack: () -> Unit) {
+fun ActionEditorScreen(
+    viewModel: ActionViewModel,
+    action: ActionEntity,
+    onBack: () -> Unit,
+    onNoteOpen: (Long) -> Unit = {}
+) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val initial = remember(action.id) { ActionEditState.from(action) }
-    var edit by remember(action.id) { mutableStateOf(initial) }
+    val notes by viewModel.notes.collectAsStateWithLifecycle()
+    val links by viewModel.contentLinks.collectAsStateWithLifecycle()
+    val allTags by viewModel.tags.collectAsStateWithLifecycle()
+    val tagRefs by viewModel.tagRefs.collectAsStateWithLifecycle()
+    val initial = remember(action.id, action.updatedAt) { ActionEditState.from(action) }
+    var edit by remember(action.id, action.updatedAt) { mutableStateOf(initial) }
     var sheet by remember { mutableStateOf<EditorSheet?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
     var showDiscardDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var tagsOpen by remember { mutableStateOf(false) }
     val dirty = edit != initial
     val convertible = initial.type in setOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT)
+    val selectedTagIds = tagRefs
+        .filter { it.ownerType == OrganizationOwnerType.ACTION && it.ownerId == action.id }
+        .map { it.tagId }
+        .toSet()
 
     fun requestBack() {
         if (dirty) showDiscardDialog = true else onBack()
@@ -119,7 +137,7 @@ fun ActionEditorScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
                             onClick = { menuExpanded = false; viewModel.archive(action.id); onBack() }
                         )
                         DropdownMenuItem(
-                            text = { Text("Excluir") },
+                            text = { Text("Mover para lixeira") },
                             onClick = { menuExpanded = false; showDeleteDialog = true }
                         )
                     }
@@ -144,6 +162,34 @@ fun ActionEditorScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
                     EditorDivider()
                     EditorRow(ActionBoxIcons.forType(ActionType.NOTE.name), "Notas", if (edit.description.isNullOrBlank()) "Adicionar" else "Editado") { sheet = EditorSheet.NOTES }
                     EditorDivider()
+                }
+            }
+            item {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Tags", style = MaterialTheme.typography.titleMedium)
+                    if (selectedTagIds.isEmpty()) {
+                        Text("Sem tags", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            allTags.filter { it.id in selectedTagIds }.forEach { tag ->
+                                Text("#${tag.name}", color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                    TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) "+ Adicionar tags" else "Editar tags") }
+                }
+            }
+            item {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                    RelatedNotesSection(
+                        ownerType = OrganizationOwnerType.ACTION,
+                        ownerId = action.id,
+                        notes = notes,
+                        links = links,
+                        onLink = { viewModel.linkNote(it, OrganizationOwnerType.ACTION, action.id) },
+                        onUnlink = viewModel::unlinkContentLink,
+                        onOpenNote = onNoteOpen
+                    )
                 }
             }
             item {
@@ -209,6 +255,22 @@ fun ActionEditorScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
         null -> Unit
     }
 
+    if (tagsOpen) {
+        TagPickerBottomSheet(
+            tags = allTags,
+            selectedIds = selectedTagIds,
+            onToggle = { tag ->
+                viewModel.setTagsForOwner(
+                    OrganizationOwnerType.ACTION,
+                    action.id,
+                    if (tag.id in selectedTagIds) selectedTagIds - tag.id else selectedTagIds + tag.id
+                )
+            },
+            onCreate = { viewModel.createAndAttachTag(OrganizationOwnerType.ACTION, action.id, it) },
+            onDismiss = { tagsOpen = false }
+        )
+    }
+
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
@@ -222,12 +284,12 @@ fun ActionEditorScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Excluir “${action.title}”?") },
-            text = { Text("Esta ação será removida do ActionBox.") },
+            title = { Text("Mover “${action.title}” para a lixeira?") },
+            text = { Text("Este item poderá ser restaurado durante 30 dias.") },
             dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } },
             confirmButton = {
                 TextButton(onClick = { showDeleteDialog = false; viewModel.delete(action.id); onBack() }) {
-                    Text("Excluir", color = MaterialTheme.colorScheme.error)
+                    Text("Mover", color = MaterialTheme.colorScheme.error)
                 }
             }
         )

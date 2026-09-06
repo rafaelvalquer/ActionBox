@@ -31,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -43,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,6 +52,8 @@ import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
 import com.luminor.actionbox.domain.RecurrenceCalculator
+import com.luminor.actionbox.domain.RecurrenceType
+import com.luminor.actionbox.domain.agenda.AgendaUseCase
 import com.luminor.actionbox.ui.designsystem.ActionBoxColors
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.actionTypeColor
@@ -66,100 +68,178 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
+private enum class AgendaMode { DAY, WEEK, MONTH, LIST }
+
 @Composable
 fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
     val all by viewModel.all.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val completions by viewModel.completions.collectAsStateWithLifecycle()
-    var mode by rememberSaveable { mutableStateOf(0) }
+    var modeName by rememberSaveable { mutableStateOf(AgendaMode.MONTH.name) }
+    val mode = runCatching { AgendaMode.valueOf(modeName) }.getOrDefault(AgendaMode.MONTH)
     var month by remember { mutableStateOf(YearMonth.now()) }
-    var selected by remember { mutableStateOf(LocalDate.now()) }
+    var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    val selectedDate = runCatching { LocalDate.parse(selected) }.getOrDefault(LocalDate.now())
     var dragTotal by remember { mutableFloatStateOf(0f) }
+
+    fun setSelected(date: LocalDate) {
+        selected = date.toString()
+        month = YearMonth.from(date)
+    }
 
     fun changeMonth(next: YearMonth) {
         month = next
-        selected = next.atDay(selected.dayOfMonth.coerceAtMost(next.lengthOfMonth()))
+        val day = selectedDate.dayOfMonth.coerceAtMost(next.lengthOfMonth())
+        selected = next.atDay(day).toString()
+    }
+
+    fun entries(date: LocalDate): List<ActionEntity> = AgendaUseCase.entriesForDay(date, all) { action, day ->
+        if (RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) RecurrenceCalculator.occursOn(action, day)
+        else viewModel.routineOccursOn(action, day)
     }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 980.dp).statusBarsPadding().padding(horizontal = 18.dp),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .widthIn(max = 980.dp)
+                .statusBarsPadding()
+                .padding(horizontal = 18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
                 Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Agenda", style = MaterialTheme.typography.headlineLarge)
                     Text("Tudo que tem dia, horário ou recorrência.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ActionSegmentedControl(listOf("Mês", "Lista"), mode, onSelected = { mode = it })
+                    ActionSegmentedControl(
+                        listOf("Dia", "Semana", "Mês", "Lista"),
+                        AgendaMode.entries.indexOf(mode),
+                        onSelected = { modeName = AgendaMode.entries[it].name }
+                    )
                 }
             }
 
-            if (mode == 0) {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            IconButton(onClick = { changeMonth(month.minusMonths(1)) }) { Icon(ActionBoxIcons.Back, contentDescription = "Mês anterior") }
-                            Text(
-                                "${month.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() }} ${month.year}",
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            IconButton(onClick = { changeMonth(month.plusMonths(1)) }) { Icon(ActionBoxIcons.Next, contentDescription = "Próximo mês") }
-                        }
-
-                        AnimatedContent(
-                            targetState = month,
-                            transitionSpec = {
-                                val forward = targetState > initialState
-                                (slideInHorizontally(tween(MotionDuration.Standard)) { if (forward) it else -it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally(tween(MotionDuration.Standard)) { if (forward) -it else it } + fadeOut())
-                            },
-                            label = "month-transition"
-                        ) { targetMonth ->
-                            MonthCalendar(
-                                month = targetMonth,
-                                selected = selected,
-                                all = all,
-                                viewModel = viewModel,
-                                modifier = Modifier.pointerInput(targetMonth) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { dragTotal = 0f },
-                                        onHorizontalDrag = { _, amount -> dragTotal += amount },
-                                        onDragEnd = {
-                                            when {
-                                                dragTotal < -80f -> changeMonth(targetMonth.plusMonths(1))
-                                                dragTotal > 80f -> changeMonth(targetMonth.minusMonths(1))
-                                            }
-                                            dragTotal = 0f
-                                        }
-                                    )
-                                },
-                                onSelect = { selected = it }
-                            )
-                        }
-
+            when (mode) {
+                AgendaMode.DAY -> {
+                    item {
+                        DayNavigation(
+                            date = selectedDate,
+                            onPrevious = { setSelected(selectedDate.minusDays(1)) },
+                            onToday = { setSelected(LocalDate.now()) },
+                            onNext = { setSelected(selectedDate.plusDays(1)) }
+                        )
+                    }
+                    item {
                         DayTimeline(
-                            date = selected,
-                            entries = entriesFor(selected, all),
+                            date = selectedDate,
+                            entries = entries(selectedDate),
                             viewModel = viewModel,
                             hapticsEnabled = settings.hapticsEnabled,
                             onActionOpen = onActionOpen
                         )
                     }
                 }
-            } else {
-                val today = LocalDate.now()
-                val days = (0..30).map { today.plusDays(it.toLong()) }.filter { entriesFor(it, all).isNotEmpty() }
-                if (days.isEmpty()) item { Text("Sua agenda está livre nos próximos 30 dias.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                days.forEach { date ->
-                    item(key = "timeline-$date-${completions.size}") {
-                        DayTimeline(date, entriesFor(date, all), viewModel, settings.hapticsEnabled, onActionOpen)
+
+                AgendaMode.WEEK -> {
+                    val weekStart = selectedDate.minusDays((selectedDate.dayOfWeek.value - 1).toLong())
+                    item {
+                        WeekNavigation(
+                            weekStart = weekStart,
+                            selected = selectedDate,
+                            entriesFor = ::entries,
+                            onSelect = ::setSelected,
+                            onPrevious = { setSelected(selectedDate.minusWeeks(1)) },
+                            onToday = { setSelected(LocalDate.now()) },
+                            onNext = { setSelected(selectedDate.plusWeeks(1)) }
+                        )
+                    }
+                    item {
+                        DayTimeline(
+                            date = selectedDate,
+                            entries = entries(selectedDate),
+                            viewModel = viewModel,
+                            hapticsEnabled = settings.hapticsEnabled,
+                            onActionOpen = onActionOpen
+                        )
                     }
                 }
-                val undated = all.filter { it.type == ActionType.TASK.name && it.scheduledAt == null && it.status == ActionStatus.PENDING.name }
-                if (undated.isNotEmpty()) {
-                    item { Text("Sem data", style = MaterialTheme.typography.titleLarge) }
-                    undated.forEach { action ->
-                        item(key = "undated-${action.id}") { TimelineAction(action, today, viewModel, settings.hapticsEnabled, onActionOpen) }
+
+                AgendaMode.MONTH -> {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                                IconButton(onClick = { changeMonth(month.minusMonths(1)) }) { Icon(ActionBoxIcons.Back, contentDescription = "Mês anterior") }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        "${month.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() }} ${month.year}",
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
+                                    TextButton(onClick = { setSelected(LocalDate.now()) }) { Text("Hoje") }
+                                }
+                                IconButton(onClick = { changeMonth(month.plusMonths(1)) }) { Icon(ActionBoxIcons.Next, contentDescription = "Próximo mês") }
+                            }
+
+                            AnimatedContent(
+                                targetState = month,
+                                transitionSpec = {
+                                    val forward = targetState > initialState
+                                    (slideInHorizontally(tween(MotionDuration.Standard)) { if (forward) it else -it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally(tween(MotionDuration.Standard)) { if (forward) -it else it } + fadeOut())
+                                },
+                                label = "month-transition"
+                            ) { targetMonth ->
+                                MonthCalendar(
+                                    month = targetMonth,
+                                    selected = selectedDate,
+                                    entriesFor = ::entries,
+                                    viewModel = viewModel,
+                                    modifier = Modifier.pointerInput(targetMonth) {
+                                        detectHorizontalDragGestures(
+                                            onDragStart = { dragTotal = 0f },
+                                            onHorizontalDrag = { _, amount -> dragTotal += amount },
+                                            onDragEnd = {
+                                                when {
+                                                    dragTotal < -80f -> changeMonth(targetMonth.plusMonths(1))
+                                                    dragTotal > 80f -> changeMonth(targetMonth.minusMonths(1))
+                                                }
+                                                dragTotal = 0f
+                                            }
+                                        )
+                                    },
+                                    onSelect = ::setSelected
+                                )
+                            }
+
+                            DayTimeline(
+                                date = selectedDate,
+                                entries = entries(selectedDate),
+                                viewModel = viewModel,
+                                hapticsEnabled = settings.hapticsEnabled,
+                                onActionOpen = onActionOpen
+                            )
+                        }
+                    }
+                }
+
+                AgendaMode.LIST -> {
+                    val today = LocalDate.now()
+                    val range = AgendaUseCase.entriesForRange(today, today.plusDays(30), all) { action, day ->
+                        if (RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) RecurrenceCalculator.occursOn(action, day)
+                        else viewModel.routineOccursOn(action, day)
+                    }
+                    if (range.isEmpty()) item { Text("Sua agenda está livre nos próximos 30 dias.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    range.forEach { (date, dayEntries) ->
+                        item(key = "timeline-$date-${completions.size}") {
+                            DayTimeline(date, dayEntries, viewModel, settings.hapticsEnabled, onActionOpen)
+                        }
+                    }
+                    val undated = all.filter { it.type == ActionType.TASK.name && it.scheduledAt == null && it.status == ActionStatus.PENDING.name }
+                    if (undated.isNotEmpty()) {
+                        item { Text("Sem data", style = MaterialTheme.typography.titleLarge) }
+                        undated.forEach { action ->
+                            item(key = "undated-${action.id}") { TimelineAction(action, today, viewModel, settings.hapticsEnabled, onActionOpen) }
+                        }
                     }
                 }
             }
@@ -169,10 +249,89 @@ fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
 }
 
 @Composable
+private fun DayNavigation(
+    date: LocalDate,
+    onPrevious: () -> Unit,
+    onToday: () -> Unit,
+    onNext: () -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+        IconButton(onClick = onPrevious) { Icon(ActionBoxIcons.Back, contentDescription = "Dia anterior") }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                date.format(DateTimeFormatter.ofPattern("EEEE", Locale.forLanguageTag("pt-BR"))).uppercase(),
+                style = MaterialTheme.typography.labelLarge
+            )
+            Text(date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale.forLanguageTag("pt-BR"))), style = MaterialTheme.typography.titleLarge)
+            if (date != LocalDate.now()) TextButton(onClick = onToday) { Text("Hoje") }
+        }
+        IconButton(onClick = onNext) { Icon(ActionBoxIcons.Next, contentDescription = "Próximo dia") }
+    }
+}
+
+@Composable
+private fun WeekNavigation(
+    weekStart: LocalDate,
+    selected: LocalDate,
+    entriesFor: (LocalDate) -> List<ActionEntity>,
+    onSelect: (LocalDate) -> Unit,
+    onPrevious: () -> Unit,
+    onToday: () -> Unit,
+    onNext: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            IconButton(onClick = onPrevious) { Icon(ActionBoxIcons.Back, contentDescription = "Semana anterior") }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "${weekStart.format(DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("pt-BR")))} – ${weekStart.plusDays(6).format(DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("pt-BR")))}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                TextButton(onClick = onToday) { Text("Hoje") }
+            }
+            IconButton(onClick = onNext) { Icon(ActionBoxIcons.Next, contentDescription = "Próxima semana") }
+        }
+        Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 1.dp) {
+            Row(Modifier.fillMaxWidth().padding(8.dp)) {
+                repeat(7) { offset ->
+                    val date = weekStart.plusDays(offset.toLong())
+                    val isSelected = date == selected
+                    val hasEntries = entriesFor(date).isNotEmpty()
+                    Column(
+                        modifier = Modifier.weight(1f).clickable { onSelect(date) }.padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("pt-BR")).take(3).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                        ) {
+                            Box(Modifier.size(34.dp), contentAlignment = Alignment.Center) {
+                                Text(date.dayOfMonth.toString(), color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+                        Surface(
+                            modifier = Modifier.size(5.dp),
+                            shape = CircleShape,
+                            color = if (hasEntries) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                        ) {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MonthCalendar(
     month: YearMonth,
     selected: LocalDate,
-    all: List<ActionEntity>,
+    entriesFor: (LocalDate) -> List<ActionEntity>,
     viewModel: ActionViewModel,
     modifier: Modifier = Modifier,
     onSelect: (LocalDate) -> Unit
@@ -194,7 +353,7 @@ private fun MonthCalendar(
                 Row(Modifier.fillMaxWidth()) {
                     week.forEach { date ->
                         if (date == null) Spacer(Modifier.weight(1f).aspectRatio(1f))
-                        else DayCell(date, selected, entriesFor(date, all), viewModel, Modifier.weight(1f)) { onSelect(date) }
+                        else DayCell(date, selected, entriesFor(date), viewModel, Modifier.weight(1f)) { onSelect(date) }
                     }
                 }
             }
@@ -203,7 +362,14 @@ private fun MonthCalendar(
 }
 
 @Composable
-private fun DayCell(date: LocalDate, selected: LocalDate, entries: List<ActionEntity>, viewModel: ActionViewModel, modifier: Modifier, onClick: () -> Unit) {
+private fun DayCell(
+    date: LocalDate,
+    selected: LocalDate,
+    entries: List<ActionEntity>,
+    viewModel: ActionViewModel,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
     val isToday = date == LocalDate.now()
     val done = entries.isNotEmpty() && entries.all { viewModel.isCompletedOn(it, date) }
     Column(
@@ -240,7 +406,13 @@ private fun DayCell(date: LocalDate, selected: LocalDate, entries: List<ActionEn
 }
 
 @Composable
-private fun DayTimeline(date: LocalDate, entries: List<ActionEntity>, viewModel: ActionViewModel, hapticsEnabled: Boolean, onActionOpen: (Long) -> Unit) {
+private fun DayTimeline(
+    date: LocalDate,
+    entries: List<ActionEntity>,
+    viewModel: ActionViewModel,
+    hapticsEnabled: Boolean,
+    onActionOpen: (Long) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             date.format(DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("pt-BR"))).replaceFirstChar { it.uppercase() },
@@ -252,7 +424,13 @@ private fun DayTimeline(date: LocalDate, entries: List<ActionEntity>, viewModel:
 }
 
 @Composable
-private fun TimelineAction(action: ActionEntity, date: LocalDate, viewModel: ActionViewModel, hapticsEnabled: Boolean, onActionOpen: (Long) -> Unit) {
+private fun TimelineAction(
+    action: ActionEntity,
+    date: LocalDate,
+    viewModel: ActionViewModel,
+    hapticsEnabled: Boolean,
+    onActionOpen: (Long) -> Unit
+) {
     val completed = viewModel.isCompletedOn(action, date)
     val color = if (completed) ActionBoxColors.Completed else actionTypeColor(action.type)
     val time = action.scheduledAt?.let {
@@ -281,8 +459,3 @@ private fun TimelineAction(action: ActionEntity, date: LocalDate, viewModel: Act
         }) { AnimatedCheck(completed) }
     }
 }
-
-private fun entriesFor(date: LocalDate, all: List<ActionEntity>): List<ActionEntity> = all
-    .filter { it.type in setOf(ActionType.TASK.name, ActionType.REMINDER.name, ActionType.EVENT.name, ActionType.LIST.name) }
-    .filter { RecurrenceCalculator.occursOn(it, date) }
-    .sortedBy { it.scheduledAt ?: Long.MAX_VALUE }

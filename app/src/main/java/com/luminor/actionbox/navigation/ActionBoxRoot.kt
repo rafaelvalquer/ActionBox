@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,6 +52,7 @@ import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.ui.actions.ActionEditorScreen
 import com.luminor.actionbox.ui.agenda.AgendaScreen
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
+import com.luminor.actionbox.ui.events.AppUiEvent
 import com.luminor.actionbox.ui.home.HomeScreen
 import com.luminor.actionbox.ui.motion.LocalNavAnimatedVisibilityScope
 import com.luminor.actionbox.ui.motion.LocalSharedTransitionScope
@@ -58,10 +60,16 @@ import com.luminor.actionbox.ui.motion.MotionDuration
 import com.luminor.actionbox.ui.motion.pressScale
 import com.luminor.actionbox.ui.organize.OrganizeScreen
 import com.luminor.actionbox.ui.organize.ProjectDetailScreen
+import com.luminor.actionbox.ui.organize.lists.ListDetailScreen
 import com.luminor.actionbox.ui.organize.notes.NoteDetailScreen
+import com.luminor.actionbox.ui.organize.routines.RoutineDetailScreen
 import com.luminor.actionbox.ui.saved.SavedDetailScreen
 import com.luminor.actionbox.ui.saved.SavedScreen
+import com.luminor.actionbox.ui.search.GlobalSearchScreen
+import com.luminor.actionbox.ui.search.GlobalSearchViewModel
 import com.luminor.actionbox.ui.settings.SettingsScreen
+import com.luminor.actionbox.ui.trash.TrashScreen
+import com.luminor.actionbox.ui.trash.TrashViewModel
 
 private data class BottomDestination(val route: String, val label: String, val icon: ImageVector)
 
@@ -82,6 +90,21 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
     val rootRoutes = bottomDestinations.map { it.route }.toSet()
 
     LaunchedEffect(Unit) { viewModel.message.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(Unit) {
+        viewModel.uiEvents.collect { event ->
+            when (event) {
+                is AppUiEvent.Message -> snackbar.showSnackbar(event.text)
+                is AppUiEvent.Undo -> {
+                    val result = snackbar.showSnackbar(
+                        message = event.text,
+                        actionLabel = "DESFAZER",
+                        withDismissAction = true
+                    )
+                    if (result == SnackbarResult.ActionPerformed) viewModel.undo(event)
+                }
+            }
+        }
+    }
     LaunchedEffect(Unit) {
         viewModel.navigateHome.collect {
             navController.navigate("today") {
@@ -132,7 +155,8 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                         HomeScreen(
                             viewModel = viewModel,
                             onSettings = { navController.navigate("settings") },
-                            onActionOpen = { navController.navigate("action/$it") }
+                            onActionOpen = { navController.navigate("action/$it") },
+                            onSearch = { navController.navigate("search") }
                         )
                     }
                 }
@@ -144,9 +168,12 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                 composable("organize") {
                     SharedDestination(sharedScope, this) {
                         OrganizeScreen(
-                            viewModel = viewModel,
+                            actionViewModel = viewModel,
                             onProjectOpen = { navController.navigate("project/$it") },
-                            onNoteOpen = { navController.navigate("note/$it") }
+                            onListOpen = { navController.navigate("list/$it") },
+                            onRoutineOpen = { navController.navigate("routine/$it") },
+                            onNoteOpen = { navController.navigate("note/$it") },
+                            onSearch = { navController.navigate("search") }
                         )
                     }
                 }
@@ -155,13 +182,48 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                         SavedScreen(viewModel, onOpenDetail = { navController.navigate("saved/$it") })
                     }
                 }
-                composable("settings") { SharedDestination(sharedScope, this) { SettingsScreen(viewModel, onBack = { navController.popBackStack() }) } }
+                composable("settings") {
+                    SharedDestination(sharedScope, this) {
+                        SettingsScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onTrash = { navController.navigate("trash") }
+                        )
+                    }
+                }
+                composable("search") {
+                    SharedDestination(sharedScope, this) {
+                        val searchViewModel = androidx.lifecycle.viewmodel.compose.viewModel<GlobalSearchViewModel>()
+                        GlobalSearchScreen(
+                            viewModel = searchViewModel,
+                            onBack = { navController.popBackStack() },
+                            onOpenAction = { navController.navigate("action/$it") },
+                            onOpenProject = { navController.navigate("project/$it") },
+                            onOpenNote = { navController.navigate("note/$it") },
+                            onOpenList = { navController.navigate("list/$it") },
+                            onOpenSaved = { navController.navigate("saved/$it") }
+                        )
+                    }
+                }
+                composable("trash") {
+                    SharedDestination(sharedScope, this) {
+                        val trashViewModel = androidx.lifecycle.viewmodel.compose.viewModel<TrashViewModel>()
+                        TrashScreen(trashViewModel, onBack = { navController.popBackStack() })
+                    }
+                }
                 composable("action/{id}") { entry ->
                     SharedDestination(sharedScope, this) {
                         val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
                         val all by viewModel.all.collectAsStateWithLifecycle()
                         val action = all.firstOrNull { it.id == id }
-                        if (action != null) ActionEditorScreen(viewModel, action, onBack = { navController.popBackStack() })
+                        if (action != null) {
+                            ActionEditorScreen(
+                                viewModel,
+                                action,
+                                onBack = { navController.popBackStack() },
+                                onNoteOpen = { navController.navigate("note/$it") }
+                            )
+                        }
                     }
                 }
                 composable("note/{id}") { entry ->
@@ -175,7 +237,24 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                 composable("project/{id}") { entry ->
                     SharedDestination(sharedScope, this) {
                         val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        ProjectDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                        ProjectDetailScreen(
+                            viewModel,
+                            id,
+                            onBack = { navController.popBackStack() },
+                            onNoteOpen = { navController.navigate("note/$it") }
+                        )
+                    }
+                }
+                composable("list/{id}") { entry ->
+                    SharedDestination(sharedScope, this) {
+                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
+                        ListDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                    }
+                }
+                composable("routine/{id}") { entry ->
+                    SharedDestination(sharedScope, this) {
+                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
+                        RoutineDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
                     }
                 }
                 composable("saved/{id}") { entry ->

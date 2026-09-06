@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +38,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun HomeScreen(viewModel: ActionViewModel, onSettings: () -> Unit, onActionOpen: (Long) -> Unit) {
+fun HomeScreen(
+    viewModel: ActionViewModel,
+    onSettings: () -> Unit,
+    onActionOpen: (Long) -> Unit,
+    onSearch: () -> Unit = {}
+) {
     val all by viewModel.all.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val today = LocalDate.now()
@@ -69,10 +76,9 @@ fun HomeScreen(viewModel: ActionViewModel, onSettings: () -> Unit, onActionOpen:
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("ActionBox", style = MaterialTheme.typography.titleLarge)
-                    IconButton(onClick = onSettings) {
-                        Icon(ActionBoxIcons.Settings, contentDescription = "Ajustes")
-                    }
+                    Text("ActionBox", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    IconButton(onClick = onSearch) { Icon(Icons.Rounded.Search, contentDescription = "Buscar") }
+                    IconButton(onClick = onSettings) { Icon(ActionBoxIcons.Settings, contentDescription = "Ajustes") }
                 }
             }
 
