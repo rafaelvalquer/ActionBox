@@ -43,7 +43,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     private val detectAction = DetectActionUseCase()
     private val settings = app.settingsRepository.settings.stateIn(
         viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
+        SharingStarted.Eagerly,
         UiSettings()
     )
 
