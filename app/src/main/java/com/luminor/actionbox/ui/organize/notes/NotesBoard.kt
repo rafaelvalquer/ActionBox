@@ -33,7 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
 import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import java.time.Instant
@@ -46,7 +46,7 @@ private enum class NoteSort(val label: String) { RECENT("Mais recentes"), OLDEST
 @Composable
 fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (Long) -> Unit) {
     val context = LocalContext.current
-    val notesViewModel = viewModel<NotesViewModel>()
+    val notesViewModel = composeViewModel<NotesViewModel>()
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("Todas") }
     var sort by remember { mutableStateOf(NoteSort.RECENT) }
