@@ -14,10 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.luminor.actionbox.ActionViewModel
 
 @Composable
-fun CaptureScreen(viewModel: ActionViewModel) {
+fun CaptureScreen(viewModel: CaptureViewModel) {
     Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 860.dp).statusBarsPadding().padding(18.dp),
