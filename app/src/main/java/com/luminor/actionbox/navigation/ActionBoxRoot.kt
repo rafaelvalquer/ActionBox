@@ -51,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.ui.actions.ActionEditorScreen
 import com.luminor.actionbox.ui.agenda.AgendaScreen
+import com.luminor.actionbox.ui.capture.CaptureViewModel
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.events.AppUiEvent
 import com.luminor.actionbox.ui.home.HomeScreen
@@ -82,7 +83,7 @@ private val bottomDestinations = listOf(
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun ActionBoxRoot(viewModel: ActionViewModel) {
+fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel) {
     val navController = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val backStack by navController.currentBackStackEntryAsState()
@@ -106,7 +107,7 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
         }
     }
     LaunchedEffect(Unit) {
-        viewModel.navigateHome.collect {
+        captureViewModel.navigateHome.collect {
             navController.navigate("today") {
                 popUpTo("today") { inclusive = true }
                 launchSingleTop = true
@@ -154,6 +155,7 @@ fun ActionBoxRoot(viewModel: ActionViewModel) {
                     SharedDestination(sharedScope, this) {
                         HomeScreen(
                             viewModel = viewModel,
+                            captureViewModel = captureViewModel,
                             onSettings = { navController.navigate("settings") },
                             onActionOpen = { navController.navigate("action/$it") },
                             onSearch = { navController.navigate("search") }
