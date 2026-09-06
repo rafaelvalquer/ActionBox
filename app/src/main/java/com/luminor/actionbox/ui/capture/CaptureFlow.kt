@@ -16,48 +16,36 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.ui.motion.MotionDuration
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
-private enum class CaptureVisualState { IDLE, ANALYZING, RESULT }
+private enum class CaptureVisualState { IDLE, RESULT }
 
 @Composable
-fun CaptureFlow(viewModel: ActionViewModel, compact: Boolean) {
+fun CaptureFlow(viewModel: CaptureViewModel, compact: Boolean) {
     val input by viewModel.input.collectAsStateWithLifecycle()
     val detected by viewModel.detected.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var analyzing = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
-    var editorVisible = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val editorVisible = remember { mutableStateOf(false) }
 
-    fun analyzeWithMotion(text: String? = null) {
-        scope.launch {
-            if (text != null) viewModel.setInput(text)
-            val candidate = text ?: input
-            if (candidate.isBlank()) {
-                viewModel.showMessage("Digite ou cole algo primeiro.")
-                return@launch
-            }
-            analyzing.value = true
-            editorVisible.value = false
-            delay(MotionDuration.Emphasized.toLong())
-            viewModel.analyze()
-            analyzing.value = false
+    fun analyze(text: String? = null) {
+        if (text != null) viewModel.setInput(text)
+        val candidate = text ?: input
+        if (candidate.isBlank()) {
+            viewModel.showMessage("Digite ou cole algo primeiro.")
+            return
         }
+
+        editorVisible.value = false
+        viewModel.analyze()
     }
 
-    val state = when {
-        analyzing.value -> CaptureVisualState.ANALYZING
-        detected != null -> CaptureVisualState.RESULT
-        else -> CaptureVisualState.IDLE
-    }
+    val state = if (detected != null) CaptureVisualState.RESULT else CaptureVisualState.IDLE
 
     Surface(
         modifier = Modifier.fillMaxWidth().animateContentSize(),
@@ -80,21 +68,23 @@ fun CaptureFlow(viewModel: ActionViewModel, compact: Boolean) {
                         value = input,
                         compact = compact,
                         onValueChange = viewModel::setInput,
-                        onAnalyze = { analyzeWithMotion() },
+                        onAnalyze = { analyze() },
                         onPaste = {
                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val text = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
-                            if (text.isNotBlank()) analyzeWithMotion(text)
+                            if (text.isNotBlank()) analyze(text)
                         }
                     )
-                    CaptureVisualState.ANALYZING -> CaptureAnalyzing()
                     CaptureVisualState.RESULT -> detected?.let { action ->
                         CaptureResult(
                             viewModel = viewModel,
                             action = action,
                             editorVisible = editorVisible.value,
                             onToggleEditor = { editorVisible.value = !editorVisible.value },
-                            onReset = { editorVisible.value = false; viewModel.clearInput() }
+                            onReset = {
+                                editorVisible.value = false
+                                viewModel.clearInput()
+                            }
                         )
                     }
                 }
