@@ -91,16 +91,37 @@ class ActionRepository(private val database: ActionBoxDatabase) {
 
     suspend fun softDeleteAction(id: Long) = dao.softDeleteAction(id)
     suspend fun restoreAction(id: Long) = dao.restoreAction(id)
-    suspend fun softDeleteProject(id: Long) = dao.softDeleteProject(id)
-    suspend fun restoreProject(id: Long) = dao.restoreProject(id)
-    suspend fun softDeleteList(id: Long) = dao.softDeleteList(id)
-    suspend fun restoreList(id: Long) = dao.restoreList(id)
+
+    suspend fun softDeleteProjectCascade(id: Long) = database.withTransaction {
+        val now = System.currentTimeMillis()
+        dao.softDeleteProject(id, now)
+        dao.softDeleteProjectActions(id, now)
+    }
+
+    suspend fun restoreProjectCascade(id: Long) = database.withTransaction {
+        val now = System.currentTimeMillis()
+        dao.restoreProject(id, now)
+        dao.restoreProjectActions(id, now)
+    }
+
+    suspend fun softDeleteListCascade(id: Long) = database.withTransaction {
+        val now = System.currentTimeMillis()
+        dao.softDeleteList(id, now)
+        dao.softDeleteListAgendaActions(id.toString(), now)
+    }
+
+    suspend fun restoreListCascade(id: Long) = database.withTransaction {
+        val now = System.currentTimeMillis()
+        dao.restoreList(id, now)
+        dao.restoreListAgendaActions(id.toString(), now)
+    }
 
     suspend fun permanentlyDeleteAction(id: Long) = database.withTransaction {
         dao.deleteCompletionsForAction(id)
         dao.deleteRoutineRulesForAction(id)
         dao.deleteTagRefsForOwner("ACTION", id)
         dao.deleteContentLinksForOwner("ACTION", id)
+        dao.deleteContentLinksForOwner("NOTE", id)
         dao.delete(id)
     }
 
@@ -140,6 +161,7 @@ class ActionRepository(private val database: ActionBoxDatabase) {
         dao.deleteTagRef(tagId, ownerType, ownerId)
 
     suspend fun deleteTag(id: Long) = database.withTransaction {
+        dao.deleteTagRefsForTag(id)
         dao.deleteTag(id)
     }
 

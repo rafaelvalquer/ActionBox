@@ -162,11 +162,23 @@ interface ActionDao {
     @Query("UPDATE projects SET deletedAt = NULL, updatedAt = :updatedAt WHERE id = :id")
     suspend fun restoreProject(id: Long, updatedAt: Long = System.currentTimeMillis())
 
+    @Query("UPDATE actions SET deletedAt = :deletedAt, updatedAt = :deletedAt WHERE projectId = :projectId")
+    suspend fun softDeleteProjectActions(projectId: Long, deletedAt: Long)
+
+    @Query("UPDATE actions SET deletedAt = NULL, updatedAt = :updatedAt WHERE projectId = :projectId")
+    suspend fun restoreProjectActions(projectId: Long, updatedAt: Long)
+
     @Query("UPDATE action_lists SET deletedAt = :deletedAt, updatedAt = :deletedAt WHERE id = :id")
     suspend fun softDeleteList(id: Long, deletedAt: Long = System.currentTimeMillis())
 
     @Query("UPDATE action_lists SET deletedAt = NULL, updatedAt = :updatedAt WHERE id = :id")
     suspend fun restoreList(id: Long, updatedAt: Long = System.currentTimeMillis())
+
+    @Query("UPDATE actions SET deletedAt = :deletedAt, updatedAt = :deletedAt WHERE type = 'LIST' AND metadata = :listId")
+    suspend fun softDeleteListAgendaActions(listId: String, deletedAt: Long)
+
+    @Query("UPDATE actions SET deletedAt = NULL, updatedAt = :updatedAt WHERE type = 'LIST' AND metadata = :listId")
+    suspend fun restoreListAgendaActions(listId: String, updatedAt: Long)
 
     @Query("UPDATE routine_rules SET effectiveUntil = :effectiveUntil WHERE actionId = :actionId AND effectiveUntil IS NULL")
     suspend fun closeActiveRoutineRule(actionId: Long, effectiveUntil: Long)
@@ -182,6 +194,9 @@ interface ActionDao {
 
     @Query("DELETE FROM tag_refs WHERE ownerType = :ownerType AND ownerId = :ownerId")
     suspend fun deleteTagRefsForOwner(ownerType: String, ownerId: Long)
+
+    @Query("DELETE FROM tag_refs WHERE tagId = :tagId")
+    suspend fun deleteTagRefsForTag(tagId: Long)
 
     @Query("DELETE FROM tags WHERE id = :id")
     suspend fun deleteTag(id: Long)
@@ -237,7 +252,7 @@ interface ActionDao {
     @Query("DELETE FROM tag_refs WHERE ownerType = 'LIST' AND ownerId NOT IN (SELECT id FROM action_lists)")
     suspend fun purgeOrphanListTagRefs()
 
-    @Query("DELETE FROM content_links WHERE (sourceType = 'ACTION' AND sourceId NOT IN (SELECT id FROM actions)) OR (targetType = 'ACTION' AND targetId NOT IN (SELECT id FROM actions)) OR (sourceType = 'PROJECT' AND sourceId NOT IN (SELECT id FROM projects)) OR (targetType = 'PROJECT' AND targetId NOT IN (SELECT id FROM projects)) OR (sourceType = 'LIST' AND sourceId NOT IN (SELECT id FROM action_lists)) OR (targetType = 'LIST' AND targetId NOT IN (SELECT id FROM action_lists))")
+    @Query("DELETE FROM content_links WHERE (sourceType = 'ACTION' AND sourceId NOT IN (SELECT id FROM actions)) OR (targetType = 'ACTION' AND targetId NOT IN (SELECT id FROM actions)) OR (sourceType = 'NOTE' AND sourceId NOT IN (SELECT id FROM actions)) OR (targetType = 'NOTE' AND targetId NOT IN (SELECT id FROM actions)) OR (sourceType = 'PROJECT' AND sourceId NOT IN (SELECT id FROM projects)) OR (targetType = 'PROJECT' AND targetId NOT IN (SELECT id FROM projects)) OR (sourceType = 'LIST' AND sourceId NOT IN (SELECT id FROM action_lists)) OR (targetType = 'LIST' AND targetId NOT IN (SELECT id FROM action_lists))")
     suspend fun purgeOrphanContentLinks()
 
     @Query("DELETE FROM routine_rules WHERE actionId NOT IN (SELECT id FROM actions)")
