@@ -33,9 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
 import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
-import com.luminor.actionbox.domain.ActionType
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -46,6 +46,7 @@ private enum class NoteSort(val label: String) { RECENT("Mais recentes"), OLDEST
 @Composable
 fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (Long) -> Unit) {
     val context = LocalContext.current
+    val notesViewModel = composeViewModel<NotesViewModel>()
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("Todas") }
     var sort by remember { mutableStateOf(NoteSort.RECENT) }
@@ -94,9 +95,7 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
             IconButton(onClick = { searchVisible = !searchVisible }) { Icon(Icons.Rounded.Search, contentDescription = "Buscar notas") }
             Surface(onClick = {
                 waitingForNewNote = true
-                viewModel.processInput("Nova nota")
-                viewModel.chooseType(ActionType.NOTE)
-                viewModel.saveDetected(context)
+                notesViewModel.createBlankNote()
             }, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
                 Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Add, contentDescription = null)

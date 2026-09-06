@@ -22,7 +22,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.domain.ActionPriority
 import com.luminor.actionbox.domain.ActionType
 import com.luminor.actionbox.domain.DetectedAction
@@ -37,7 +36,7 @@ private enum class EditorSheet { TYPE, DATE, TIME, REMINDER, RECURRENCE, PRIORIT
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureEditor(viewModel: ActionViewModel, action: DetectedAction) {
+fun CaptureEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     var sheet by remember { mutableStateOf<EditorSheet?>(null) }
     val dateLabel = action.scheduledAt?.toLocalDate()?.let {
         when (it) {
@@ -110,7 +109,7 @@ private fun DetailRow(label: String, value: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TypeEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun TypeEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     Text("Tipo de ação", style = MaterialTheme.typography.titleLarge)
     val types = listOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT, ActionType.NOTE, ActionType.LIST, ActionType.PROJECT)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -119,7 +118,7 @@ private fun TypeEditor(viewModel: ActionViewModel, action: DetectedAction) {
 }
 
 @Composable
-private fun DateEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun DateEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     var custom by remember(action.scheduledAt?.toLocalDate()) { mutableStateOf(action.scheduledAt?.toLocalDate()?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")).orEmpty()) }
     Text("Data", style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -138,7 +137,7 @@ private fun DateEditor(viewModel: ActionViewModel, action: DetectedAction) {
 }
 
 @Composable
-private fun TimeEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun TimeEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     var custom by remember(action.scheduledAt?.toLocalTime()) { mutableStateOf(action.scheduledAt?.toLocalTime()?.format(DateTimeFormatter.ofPattern("HH:mm")).orEmpty()) }
     Text("Hora", style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -157,7 +156,7 @@ private fun TimeEditor(viewModel: ActionViewModel, action: DetectedAction) {
 }
 
 @Composable
-private fun ReminderEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun ReminderEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     Text("Aviso", style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val values = listOf(null to "Sem aviso", 0 to "Na hora", 10 to "10 min", 30 to "30 min", 60 to "1 hora")
@@ -166,7 +165,7 @@ private fun ReminderEditor(viewModel: ActionViewModel, action: DetectedAction) {
 }
 
 @Composable
-private fun RecurrenceEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun RecurrenceEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     Text("Repetir", style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val values = listOf(RecurrenceType.NONE to "Não", RecurrenceType.DAILY to "Todo dia", RecurrenceType.WEEKLY to "Semanal", RecurrenceType.MONTHLY to "Mensal")
@@ -182,7 +181,7 @@ private fun RecurrenceEditor(viewModel: ActionViewModel, action: DetectedAction)
 }
 
 @Composable
-private fun PriorityEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun PriorityEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     Text("Prioridade", style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(ActionPriority.entries) { priority -> ActionChip(priorityLabel(priority), action.priority == priority) { viewModel.setPriority(priority) } }
@@ -190,7 +189,7 @@ private fun PriorityEditor(viewModel: ActionViewModel, action: DetectedAction) {
 }
 
 @Composable
-private fun ItemsEditor(viewModel: ActionViewModel, action: DetectedAction) {
+private fun ItemsEditor(viewModel: CaptureViewModel, action: DetectedAction) {
     var newItem by remember { mutableStateOf("") }
     Text("Itens", style = MaterialTheme.typography.titleLarge)
     action.items.forEachIndexed { index, item ->

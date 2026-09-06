@@ -30,6 +30,7 @@ import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
 import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.ui.capture.CaptureFlow
+import com.luminor.actionbox.ui.capture.CaptureViewModel
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionEmptyState
 import java.time.LocalDate
@@ -40,6 +41,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     viewModel: ActionViewModel,
+    captureViewModel: CaptureViewModel,
     onSettings: () -> Unit,
     onActionOpen: (Long) -> Unit,
     onSearch: () -> Unit = {}
@@ -89,7 +91,7 @@ fun HomeScreen(
                 }
             }
 
-            item { CaptureFlow(viewModel = viewModel, compact = true) }
+            item { CaptureFlow(viewModel = captureViewModel, compact = true) }
 
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {

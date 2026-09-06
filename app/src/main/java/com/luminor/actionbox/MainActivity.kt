@@ -8,10 +8,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luminor.actionbox.navigation.ActionBoxRoot
+import com.luminor.actionbox.ui.capture.CaptureViewModel
 import com.luminor.actionbox.ui.designsystem.ActionBoxTheme
 
 class MainActivity : ComponentActivity() {
     private val viewModel: ActionViewModel by viewModels()
+    private val captureViewModel: CaptureViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,7 +22,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings = viewModel.settings.collectAsStateWithLifecycle().value
             ActionBoxTheme(themeMode = settings.themeMode) {
-                ActionBoxRoot(viewModel = viewModel)
+                ActionBoxRoot(viewModel = viewModel, captureViewModel = captureViewModel)
             }
         }
 
@@ -36,7 +38,7 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("text/") == true) {
             val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
-            if (text.isNotBlank()) viewModel.processInput(text, fromShare = true)
+            if (text.isNotBlank()) captureViewModel.processInput(text, fromShare = true)
         }
     }
 }
