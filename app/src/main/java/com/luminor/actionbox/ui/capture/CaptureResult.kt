@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.domain.ActionType
 import com.luminor.actionbox.domain.DetectedAction
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
@@ -36,7 +35,7 @@ import java.util.Locale
 
 @Composable
 fun CaptureResult(
-    viewModel: ActionViewModel,
+    viewModel: CaptureViewModel,
     action: DetectedAction,
     editorVisible: Boolean,
     onToggleEditor: () -> Unit,
