@@ -1,9 +1,16 @@
 package com.luminor.actionbox.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "actions")
+@Entity(
+    tableName = "actions",
+    indices = [
+        Index(value = ["projectId"]),
+        Index(value = ["deletedAt"])
+    ]
+)
 data class ActionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val type: String,
@@ -26,5 +33,7 @@ data class ActionEntity(
     val noteCategory: String? = null,
     val noteColor: String? = null,
     val isPinned: Boolean = false,
-    val updatedAt: Long? = null
+    val updatedAt: Long? = null,
+    val deletedAt: Long? = null,
+    val sortOrder: Int = 0
 )
