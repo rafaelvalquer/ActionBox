@@ -21,12 +21,17 @@ import com.luminor.actionbox.ui.designsystem.components.ActionButton
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
 
 @Composable
-fun ListRichCard(list: ActionListEntity, items: List<ListItemEntity>, viewModel: ActionViewModel) {
+fun ListRichCard(
+    list: ActionListEntity,
+    items: List<ListItemEntity>,
+    viewModel: ActionViewModel,
+    onOpen: (() -> Unit)? = null
+) {
     val done = items.count { it.completedAt != null }
     val progress = if (items.isEmpty()) 0f else done.toFloat() / items.size
     val ready = items.isNotEmpty() && done == items.size && list.completedAt == null
 
-    ActionCard {
+    ActionCard(onClick = onOpen) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
@@ -42,6 +47,7 @@ fun ListRichCard(list: ActionListEntity, items: List<ListItemEntity>, viewModel:
                     Text(item.title, style = MaterialTheme.typography.bodyMedium, textDecoration = if (item.completedAt != null) TextDecoration.LineThrough else null)
                 }
             }
+            if (items.size > 7) Text("+ ${items.size - 7} itens", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             when {
                 ready -> ActionButton("Finalizar lista", onClick = { viewModel.finishList(list.id) })
                 list.completedAt != null -> ActionButton("Reabrir lista", onClick = { viewModel.reopenList(list.id) }, primary = false)

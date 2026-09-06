@@ -32,7 +32,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.HabitStreakCalculator
-import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.ui.designsystem.ActionBoxColors
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
@@ -44,16 +43,24 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
-fun HabitRichCard(action: ActionEntity, viewModel: ActionViewModel) {
+fun HabitRichCard(
+    action: ActionEntity,
+    viewModel: ActionViewModel,
+    onOpen: (() -> Unit)? = null
+) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val today = LocalDate.now()
     val month = YearMonth.from(today)
     val occurrences = (1..month.lengthOfMonth())
         .map { month.atDay(it) }
-        .filter { RecurrenceCalculator.occursOn(action, it) && !it.isAfter(today) }
+        .filter { viewModel.routineOccursOn(action, it) && !it.isAfter(today) }
     val completed = occurrences.count { viewModel.isCompletedOn(action, it) }
     val progress = if (occurrences.isEmpty()) 0f else completed.toFloat() / occurrences.size
-    val streak = HabitStreakCalculator.currentStreak(action, today) { viewModel.isCompletedOn(action, it) }
+    val streak = HabitStreakCalculator.currentStreak(
+        today = today,
+        occursOn = { viewModel.routineOccursOn(action, it) },
+        isCompleted = { viewModel.isCompletedOn(action, it) }
+    )
     val streakScale = remember { Animatable(1f) }
     var previousStreak by remember(action.id) { mutableIntStateOf(streak) }
 
@@ -65,12 +72,16 @@ fun HabitRichCard(action: ActionEntity, viewModel: ActionViewModel) {
         previousStreak = streak
     }
 
-    ActionCard {
+    ActionCard(onClick = onOpen) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("🏋️ ${action.title}", style = MaterialTheme.typography.titleLarge)
-                    Text("$completed dias este mês", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (action.status == "CANCELLED") "Rotina pausada" else "$completed dias este mês",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (action.status == "CANCELLED") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
@@ -125,7 +136,7 @@ private fun HabitMonthGrid(
                 if (date == null) {
                     Spacer(Modifier.weight(1f).height(48.dp))
                 } else {
-                    val occurs = RecurrenceCalculator.occursOn(action, date)
+                    val occurs = viewModel.routineOccursOn(action, date)
                     val done = occurs && viewModel.isCompletedOn(action, date)
                     val future = date.isAfter(today)
                     val enabled = occurs && !future
