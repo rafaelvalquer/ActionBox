@@ -149,6 +149,12 @@ fun RoutineDetailScreen(
                 )
             }
             item {
+                RoutineEmojiSelector(
+                    value = edit.iconEmoji,
+                    onValueChange = { edit = edit.copy(iconEmoji = it) }
+                )
+            }
+            item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Repetição", style = MaterialTheme.typography.titleMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -246,7 +252,7 @@ fun RoutineDetailScreen(
                             } else {
                                 viewModel.saveRoutineEdits(
                                     context = context,
-                                    original = action,
+                                    original = action.copy(iconEmoji = edit.iconEmoji.trim().ifBlank { null }),
                                     title = edit.title,
                                     recurrenceType = edit.recurrenceType,
                                     recurrenceDays = edit.recurrenceDays,
@@ -266,7 +272,7 @@ fun RoutineDetailScreen(
         } else {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("🏋️ ${action.title}", style = MaterialTheme.typography.headlineLarge)
+                    Text("${routineEmoji(action.iconEmoji)} ${action.title}", style = MaterialTheme.typography.headlineLarge)
                     if (action.status == "CANCELLED") Text("Pausada", color = MaterialTheme.colorScheme.error)
                     Text("🔥 Sequência atual: $streak", style = MaterialTheme.typography.titleMedium)
                     Text("$completed de ${occurrences.size} ocorrências este mês", color = MaterialTheme.colorScheme.onSurfaceVariant)
