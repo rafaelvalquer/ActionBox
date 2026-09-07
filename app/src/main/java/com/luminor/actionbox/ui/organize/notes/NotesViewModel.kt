@@ -7,15 +7,20 @@ import com.luminor.actionbox.ActionBoxApplication
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 class NotesViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as ActionBoxApplication
     private val repository = app.repository
 
+    private val _createdNoteIds = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val createdNoteIds = _createdNoteIds.asSharedFlow()
+
     fun createBlankNote() {
         viewModelScope.launch {
-            repository.insert(
+            val id = repository.insert(
                 ActionEntity(
                     type = ActionType.NOTE.name,
                     title = "Nova nota",
@@ -25,6 +30,7 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                     completedAt = System.currentTimeMillis()
                 )
             )
+            _createdNoteIds.emit(id)
             app.uiEventBus.message("Nota salva")
         }
     }
