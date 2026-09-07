@@ -53,13 +53,9 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
     var searchVisible by remember { mutableStateOf(false) }
     var menuNote by remember { mutableStateOf<ActionEntity?>(null) }
     var sortOpen by remember { mutableStateOf(false) }
-    var waitingForNewNote by remember { mutableStateOf(false) }
 
-    LaunchedEffect(notes.size) {
-        if (waitingForNewNote && notes.isNotEmpty()) {
-            waitingForNewNote = false
-            notes.maxByOrNull { it.createdAt }?.let { onOpen(it.id) }
-        }
+    LaunchedEffect(notesViewModel) {
+        notesViewModel.createdNoteIds.collect(onOpen)
     }
 
     val filtered = notes.filter { note ->
@@ -93,10 +89,7 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
                 Text("Todas as notas · ${notes.size}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(onClick = { searchVisible = !searchVisible }) { Icon(Icons.Rounded.Search, contentDescription = "Buscar notas") }
-            Surface(onClick = {
-                waitingForNewNote = true
-                notesViewModel.createBlankNote()
-            }, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
+            Surface(onClick = notesViewModel::createBlankNote, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
                 Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Add, contentDescription = null)
                     Text("Nova")
