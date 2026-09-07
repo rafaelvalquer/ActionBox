@@ -20,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -60,10 +61,12 @@ fun OrganizeScreen(
     val selectedTagId by organizeViewModel.selectedTagId.collectAsStateWithLifecycle()
     val section = runCatching { OrganizeSection.valueOf(sectionName) }.getOrDefault(OrganizeSection.PROJECTS)
     val scrollPosition = remember(section) { organizeViewModel.scrollPosition(section) }
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = scrollPosition.first,
-        initialFirstVisibleItemScrollOffset = scrollPosition.second
-    )
+    val listState = key(section) {
+        rememberLazyListState(
+            initialFirstVisibleItemIndex = scrollPosition.first,
+            initialFirstVisibleItemScrollOffset = scrollPosition.second
+        )
+    }
 
     LaunchedEffect(section, listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
