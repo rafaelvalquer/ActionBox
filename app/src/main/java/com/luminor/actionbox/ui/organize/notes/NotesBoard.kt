@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Search
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
 import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -44,9 +47,19 @@ private enum class NoteSort(val label: String) { RECENT("Mais recentes"), OLDEST
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (Long) -> Unit) {
+fun NotesBoard(
+    notes: List<ActionEntity>,
+    viewModel: ActionViewModel,
+    onOpen: (Long) -> Unit,
+    initialScrollPosition: Pair<Int, Int> = 0 to 0,
+    onScrollPositionChanged: (Int, Int) -> Unit = { _, _ -> }
+) {
     val context = LocalContext.current
     val notesViewModel = composeViewModel<NotesViewModel>()
+    val gridState = rememberLazyStaggeredGridState(
+        initialFirstVisibleItemIndex = initialScrollPosition.first,
+        initialFirstVisibleItemScrollOffset = initialScrollPosition.second
+    )
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("Todas") }
     var sort by remember { mutableStateOf(NoteSort.RECENT) }
@@ -55,7 +68,12 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
     var sortOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(notesViewModel) {
-        notesViewModel.createdNoteIds.collect(onOpen)
+        notesViewModel.createdNoteIds.collect { onOpen(it) }
+    }
+    LaunchedEffect(gridState) {
+        snapshotFlow { gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset }
+            .distinctUntilChanged()
+            .collect { (index, offset) -> onScrollPositionChanged(index, offset) }
     }
 
     val filtered = notes.filter { note ->
@@ -106,6 +124,7 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
         }
 
         LazyVerticalStaggeredGrid(
+            state = gridState,
             columns = StaggeredGridCells.Fixed(2),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalItemSpacing = 10.dp,
