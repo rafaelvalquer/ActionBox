@@ -69,9 +69,11 @@ fun OrganizeScreen(
     }
 
     LaunchedEffect(section, listState) {
-        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
-            .distinctUntilChanged()
-            .collect { (index, offset) -> organizeViewModel.updateScroll(section, index, offset) }
+        if (section != OrganizeSection.NOTES) {
+            snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                .distinctUntilChanged()
+                .collect { (index, offset) -> organizeViewModel.updateScroll(section, index, offset) }
+        }
     }
 
     fun ownerHasSelectedTag(ownerType: String, ownerId: Long): Boolean =
@@ -109,7 +111,15 @@ fun OrganizeScreen(
         }
 
         if (section == OrganizeSection.NOTES) {
-            NotesBoard(notes = visibleNotes, viewModel = actionViewModel, onOpen = onNoteOpen)
+            NotesBoard(
+                notes = visibleNotes,
+                viewModel = actionViewModel,
+                onOpen = onNoteOpen,
+                initialScrollPosition = scrollPosition,
+                onScrollPositionChanged = { index, offset ->
+                    organizeViewModel.updateScroll(OrganizeSection.NOTES, index, offset)
+                }
+            )
         } else {
             Box(Modifier.weight(1f)) {
                 LazyColumn(
