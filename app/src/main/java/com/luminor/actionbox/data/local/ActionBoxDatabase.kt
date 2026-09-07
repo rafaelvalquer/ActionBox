@@ -19,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ContentLinkEntity::class,
         RoutineRuleEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class ActionBoxDatabase : RoomDatabase() {
@@ -28,7 +28,7 @@ abstract class ActionBoxDatabase : RoomDatabase() {
     companion object {
         @Volatile private var INSTANCE: ActionBoxDatabase? = null
 
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE actions ADD COLUMN description TEXT")
                 db.execSQL("ALTER TABLE actions ADD COLUMN endAt INTEGER")
@@ -45,14 +45,14 @@ abstract class ActionBoxDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
+        val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE projects ADD COLUMN completedAt INTEGER")
                 db.execSQL("ALTER TABLE action_lists ADD COLUMN completedAt INTEGER")
             }
         }
 
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE actions ADD COLUMN noteCategory TEXT")
                 db.execSQL("ALTER TABLE actions ADD COLUMN noteColor TEXT")
@@ -90,6 +90,20 @@ abstract class ActionBoxDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE actions ADD COLUMN iconEmoji TEXT")
+            }
+        }
+
+        val ALL_MIGRATIONS = arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6
+        )
+
         fun getInstance(context: Context): ActionBoxDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -97,7 +111,7 @@ abstract class ActionBoxDatabase : RoomDatabase() {
                     ActionBoxDatabase::class.java,
                     "actionbox.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                     .also { INSTANCE = it }
             }
