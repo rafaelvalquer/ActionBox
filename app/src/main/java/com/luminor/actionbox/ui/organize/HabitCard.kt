@@ -37,6 +37,7 @@ import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionCard
 import com.luminor.actionbox.ui.motion.AnimatedCheck
 import com.luminor.actionbox.ui.motion.pressScale
+import com.luminor.actionbox.ui.organize.routines.routineEmoji
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -76,7 +77,7 @@ fun HabitRichCard(
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("🏋️ ${action.title}", style = MaterialTheme.typography.titleLarge)
+                    Text("${routineEmoji(action.iconEmoji)} ${action.title}", style = MaterialTheme.typography.titleLarge)
                     Text(
                         if (action.status == "CANCELLED") "Rotina pausada" else "$completed dias este mês",
                         style = MaterialTheme.typography.bodyMedium,
