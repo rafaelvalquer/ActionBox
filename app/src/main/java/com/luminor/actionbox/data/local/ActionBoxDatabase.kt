@@ -19,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ContentLinkEntity::class,
         RoutineRuleEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class ActionBoxDatabase : RoomDatabase() {
@@ -90,6 +90,12 @@ abstract class ActionBoxDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE actions ADD COLUMN iconEmoji TEXT")
+            }
+        }
+
         fun getInstance(context: Context): ActionBoxDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -97,7 +103,7 @@ abstract class ActionBoxDatabase : RoomDatabase() {
                     ActionBoxDatabase::class.java,
                     "actionbox.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }

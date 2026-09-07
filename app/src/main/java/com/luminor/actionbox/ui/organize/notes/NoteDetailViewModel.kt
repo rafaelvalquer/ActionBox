@@ -54,10 +54,11 @@ class NoteDetailViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
+    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands,
     private val organizationCommands: OrganizationCommands,
     savedStateHandle: SavedStateHandle
-) : EventViewModel(uiEventBus) {
+) : EventViewModel(uiEventBus, commandRunner) {
     private val id = savedStateHandle.get<String>("id")?.toLongOrNull() ?: -1L
     private val retry = MutableStateFlow(0)
     fun retry() { retry.value++ }

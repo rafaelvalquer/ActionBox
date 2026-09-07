@@ -35,5 +35,6 @@ data class ActionEntity(
     val isPinned: Boolean = false,
     val updatedAt: Long? = null,
     val deletedAt: Long? = null,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    val iconEmoji: String? = null
 )

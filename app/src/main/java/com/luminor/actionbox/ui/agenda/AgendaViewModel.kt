@@ -53,8 +53,9 @@ class AgendaViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
+    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands
-) : EventViewModel(uiEventBus) {
+) : EventViewModel(uiEventBus, commandRunner) {
     private val period = MutableStateFlow(LocalDate.now() to LocalDate.now())
     fun setPeriod(start: LocalDate, end: LocalDate) { period.value = start to end }
     private val actionsFlow = period.flatMapLatest { (start, end) -> repository.observeAgenda(start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()) }

@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,10 +31,14 @@ import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.OrganizationOwnerType
 import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.domain.RecurrenceType
+import com.luminor.actionbox.domain.HabitStreakCalculator
 import com.luminor.actionbox.ui.designsystem.components.ActionEmptyState
 import com.luminor.actionbox.ui.designsystem.components.ActionSegmentedControl
 import com.luminor.actionbox.ui.organize.notes.NotesBoard
 import com.luminor.actionbox.ui.tags.TagFilterBar
+import com.luminor.actionbox.ui.organize.routines.RoutineAccordionCard
+import java.time.LocalDate
+import java.time.YearMonth
 
 @Composable
 fun OrganizeScreen(
@@ -49,7 +52,7 @@ fun OrganizeScreen(
 ) {
     val textResources = androidx.compose.ui.platform.LocalContext.current.resources
 
-    var section by remember { mutableIntStateOf(0) }
+    val section by organizeViewModel.selectedSection.collectAsStateWithLifecycle()
     val all = when (section) {
         0 -> organizeViewModel.projectActions.collectAsStateWithLifecycle().value
         2 -> organizeViewModel.actions.collectAsStateWithLifecycle().value
@@ -64,6 +67,8 @@ fun OrganizeScreen(
     val settings by organizeViewModel.settings.collectAsStateWithLifecycle()
     val tags by organizeViewModel.tags.collectAsStateWithLifecycle()
     val tagRefs by organizeViewModel.tagRefs.collectAsStateWithLifecycle()
+    val expandedProjectIds by organizeViewModel.expandedProjectIds.collectAsStateWithLifecycle()
+    val expandedRoutineIds by organizeViewModel.expandedRoutineIds.collectAsStateWithLifecycle()
     var selectedTagId by remember { mutableStateOf<Long?>(null) }
 
     fun ownerHasSelectedTag(ownerType: String, ownerId: Long): Boolean =
@@ -76,6 +81,7 @@ fun OrganizeScreen(
     val visibleRoutines = all
         .filter { RecurrenceCalculator.recurrenceType(it) != RecurrenceType.NONE && it.status != ActionStatus.ARCHIVED.name }
         .filter { ownerHasSelectedTag(OrganizationOwnerType.ACTION, it.id) }
+    val activeExpandedRoutineIds = expandedRoutineIds.intersect(visibleRoutines.map { it.id }.toSet())
     val visibleNotes = notes.filter { ownerHasSelectedTag(OrganizationOwnerType.ACTION, it.id) }
 
     Column(
@@ -90,7 +96,7 @@ fun OrganizeScreen(
                 }
                 TextButton(onClick = onSearch) { Text(textResources.getString(R.string.text_buscar_169)) }
             }
-            ActionSegmentedControl(listOf(textResources.getString(R.string.text_projetos), textResources.getString(R.string.text_listas), textResources.getString(R.string.text_rotinas), textResources.getString(R.string.text_notas)), section, onSelected = { section = it })
+            ActionSegmentedControl(listOf(textResources.getString(R.string.text_projetos), textResources.getString(R.string.text_listas), textResources.getString(R.string.text_rotinas), textResources.getString(R.string.text_notas)), section, onSelected = organizeViewModel::setSelectedSection)
             if (tags.isNotEmpty()) {
                 TagFilterBar(tags = tags, selectedTagId = selectedTagId, onSelected = { selectedTagId = it })
             }
@@ -109,9 +115,12 @@ fun OrganizeScreen(
                             if (visibleProjects.isEmpty()) item { ActionEmptyState("📁", textResources.getString(R.string.text_nenhum_projeto), if (selectedTagId == null) textResources.getString(R.string.text_experimente_projeto_viagem_passagem_hotel_e_seguro) else textResources.getString(R.string.text_nenhum_projeto_usa_esta_tag)) }
                             items(visibleProjects, key = { it.id }) { project ->
                                 ProjectRichCard(
-                                    project,
-                                    all.filter { it.projectId == project.id }.sortedWith(compareBy({ it.sortOrder }, { it.createdAt })),
-                                    onOpen = { onProjectOpen(project.id) }
+                                    project = project,
+                                    tasks = all.filter { it.projectId == project.id }.sortedWith(compareBy({ it.sortOrder }, { it.createdAt })),
+                                    expanded = project.id in expandedProjectIds,
+                                    onToggleExpanded = { organizeViewModel.toggleProjectExpanded(project.id) },
+                                    onToggleTask = organizeViewModel::toggleProjectTask,
+                                    onOpenProject = { onProjectOpen(project.id) }
                                 )
                             }
                         }
@@ -131,11 +140,27 @@ fun OrganizeScreen(
                         2 -> {
                             if (visibleRoutines.isEmpty()) item { ActionEmptyState("🏋️", textResources.getString(R.string.text_nenhuma_rotina), if (selectedTagId == null) textResources.getString(R.string.text_crie_algo_recorrente_como_academia_segunda_quarta_e_sexta_as_19h) else textResources.getString(R.string.text_nenhuma_rotina_usa_esta_tag)) }
                             items(visibleRoutines, key = { textResources.getString(R.string.text_routine , it.id, completions.size) }) { action ->
-                                HabitRichCard(action,
-                                    occursOn = { entity, date -> com.luminor.actionbox.domain.routine.RoutineEvaluation.routineOccursOn(entity, date, rules) },
-                                    completedOn = { entity, date -> com.luminor.actionbox.domain.routine.RoutineEvaluation.isCompletedOn(entity, date, completions) },
-                                    onToggle = { entity, date -> organizeViewModel.toggleOccurrence(entity, date) },
-                                    hapticsEnabled = settings.hapticsEnabled, onOpen = { onRoutineOpen(action.id) })
+                                val occursOn: (LocalDate) -> Boolean = { date -> com.luminor.actionbox.domain.routine.RoutineEvaluation.routineOccursOn(action, date, rules) }
+                                val completedOn: (LocalDate) -> Boolean = { date -> com.luminor.actionbox.domain.routine.RoutineEvaluation.isCompletedOn(action, date, completions) }
+                                val today = LocalDate.now()
+                                val month = YearMonth.from(today)
+                                val completedDays = (1..month.lengthOfMonth()).count { day ->
+                                    val date = month.atDay(day)
+                                    occursOn(date) && !date.isAfter(today) && completedOn(date)
+                                }
+                                val streak = HabitStreakCalculator.currentStreak(today, occursOn, completedOn)
+                                RoutineAccordionCard(
+                                    action = action,
+                                    expanded = action.id in activeExpandedRoutineIds,
+                                    completedDays = completedDays,
+                                    streak = streak,
+                                    occursOn = occursOn,
+                                    completedOn = completedOn,
+                                    onToggleExpanded = { organizeViewModel.toggleRoutineExpanded(action.id) },
+                                    onToggleDay = { date -> organizeViewModel.toggleOccurrence(action, date) },
+                                    onOpenRoutine = { onRoutineOpen(action.id) },
+                                    hapticsEnabled = settings.hapticsEnabled
+                                )
                             }
                         }
                     }

@@ -10,6 +10,7 @@ import java.time.ZoneId
 
 data class RoutineEditState(
     val title: String,
+    val iconEmoji: String,
     val recurrenceType: RecurrenceType,
     val recurrenceDays: Set<Int>,
     val time: LocalTime,
@@ -24,6 +25,7 @@ data class RoutineEditState(
                 ?: LocalTime.of(9, 0)
             return RoutineEditState(
                 title = action.title,
+                iconEmoji = action.iconEmoji?.takeIf { it.isNotBlank() } ?: "🔁",
                 recurrenceType = RecurrenceCalculator.recurrenceType(action).takeIf { it != RecurrenceType.NONE } ?: RecurrenceType.WEEKLY,
                 recurrenceDays = RecurrenceCalculator.recurrenceDays(action),
                 time = time,

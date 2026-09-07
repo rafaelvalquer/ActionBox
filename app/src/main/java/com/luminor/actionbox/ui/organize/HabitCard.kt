@@ -80,7 +80,7 @@ fun HabitRichCard(
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("🏋️ ${action.title}", style = MaterialTheme.typography.titleLarge)
+                    Text("${action.iconEmoji?.takeIf { it.isNotBlank() } ?: "🔁"} ${action.title}", style = MaterialTheme.typography.titleLarge)
                     Text(
                         if (action.status == "CANCELLED") textResources.getString(R.string.text_rotina_pausada) else textResources.getString(R.string.text_dias_este_mes , completed),
                         style = MaterialTheme.typography.bodyMedium,
@@ -94,13 +94,12 @@ fun HabitRichCard(
                 month.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() },
                 style = MaterialTheme.typography.labelLarge
             )
-            HabitMonthGrid(
-                action = action,
+            RoutineMonthCalendar(
                 month = month,
                 today = today,
-                occursOn = occursOn,
-                completedOn = completedOn,
-                onToggle = onToggle,
+                occursOn = { date -> occursOn(action, date) },
+                completedOn = { date -> completedOn(action, date) },
+                onToggle = { date -> onToggle(action, date) },
                 hapticsEnabled = hapticsEnabled
             )
             Row(
@@ -116,13 +115,12 @@ fun HabitRichCard(
 }
 
 @Composable
-private fun HabitMonthGrid(
-    action: ActionEntity,
+fun RoutineMonthCalendar(
     month: YearMonth,
     today: LocalDate,
-    occursOn: (ActionEntity, LocalDate) -> Boolean,
-    completedOn: (ActionEntity, LocalDate) -> Boolean,
-    onToggle: (ActionEntity, LocalDate) -> Unit,
+    occursOn: (LocalDate) -> Boolean,
+    completedOn: (LocalDate) -> Boolean,
+    onToggle: (LocalDate) -> Unit,
     hapticsEnabled: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
@@ -144,8 +142,8 @@ private fun HabitMonthGrid(
                 if (date == null) {
                     Spacer(Modifier.weight(1f).height(48.dp))
                 } else {
-                    val occurs = occursOn(action, date)
-                    val done = occurs && completedOn(action, date)
+                    val occurs = occursOn(date)
+                    val done = occurs && completedOn(date)
                     val future = date.isAfter(today)
                     val enabled = occurs && !future
                     val cellModifier = Modifier
@@ -157,7 +155,7 @@ private fun HabitMonthGrid(
                                     .pressScale(0.9f)
                                     .clickable {
                                         if (hapticsEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onToggle(action, date)
+                                        onToggle(date)
                                     }
                             } else Modifier
                         )

@@ -54,9 +54,10 @@ class SavedDetailViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
+    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands,
     savedStateHandle: SavedStateHandle
-) : EventViewModel(uiEventBus) {
+) : EventViewModel(uiEventBus, commandRunner) {
     fun addToSystemCalendar(context: Context, action: ActionEntity) {
         val detected = DetectedAction(
             type = ActionType.EVENT,

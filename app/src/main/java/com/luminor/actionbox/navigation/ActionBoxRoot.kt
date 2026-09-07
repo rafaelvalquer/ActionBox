@@ -223,7 +223,7 @@ fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) 
                 composable("history") {
                     com.luminor.actionbox.ui.history.HistoryScreen(hiltViewModel(), onBack = { navController.popBackStack() })
                 }
-                composable(textResources.getString(R.string.text_action_id)) {
+                composable("action/{id}") {
                     SharedDestination(sharedScope, this) {
                         val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.actions.ActionEditorViewModel>()
                         val detail by detailViewModel.detail.collectAsStateWithLifecycle()
@@ -232,7 +232,7 @@ fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) 
                         }
                     }
                 }
-                composable(textResources.getString(R.string.text_note_id)) {
+                composable("note/{id}") {
                     SharedDestination(sharedScope, this) {
                         val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.notes.NoteDetailViewModel>()
                         val detail by detailViewModel.detail.collectAsStateWithLifecycle()
@@ -241,7 +241,7 @@ fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) 
                         }
                     }
                 }
-                composable(textResources.getString(R.string.text_project_id)) {
+                composable("project/{id}") {
                     SharedDestination(sharedScope, this) {
                         val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.ProjectViewModel>()
                         val detail by detailViewModel.detail.collectAsStateWithLifecycle()
@@ -250,7 +250,7 @@ fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) 
                         }
                     }
                 }
-                composable(textResources.getString(R.string.text_list_id)) {
+                composable("list/{id}") {
                     SharedDestination(sharedScope, this) {
                         val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.lists.ListViewModel>()
                         val detail by detailViewModel.detail.collectAsStateWithLifecycle()
@@ -259,7 +259,7 @@ fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) 
                         }
                     }
                 }
-                composable(textResources.getString(R.string.text_routine_id)) {
+                composable("routine/{id}") {
                     SharedDestination(sharedScope, this) {
                         val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.routines.RoutineViewModel>()
                         val detail by detailViewModel.detail.collectAsStateWithLifecycle()
@@ -268,7 +268,7 @@ fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) 
                         }
                     }
                 }
-                composable(textResources.getString(R.string.text_saved_id)) {
+                composable("saved/{id}") {
                     SharedDestination(sharedScope, this) {
                         val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.saved.SavedDetailViewModel>()
                         val detail by detailViewModel.detail.collectAsStateWithLifecycle()

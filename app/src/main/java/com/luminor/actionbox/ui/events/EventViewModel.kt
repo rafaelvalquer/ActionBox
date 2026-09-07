@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-abstract class EventViewModel(protected val uiEventBus: AppUiEventBus) : ViewModel() {
+abstract class EventViewModel(protected val uiEventBus: AppUiEventBus, private val commandRunner: CommandRunner) : ViewModel() {
     protected fun execute(block: suspend () -> Unit) = viewModelScope.launch {
         try { block() }
         catch (cancelled: CancellationException) { throw cancelled }

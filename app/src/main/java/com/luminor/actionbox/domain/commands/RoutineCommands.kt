@@ -54,6 +54,7 @@ class RoutineCommands @Inject constructor(
         context: Context,
         original: ActionEntity,
         title: String,
+        iconEmoji: String,
         recurrenceType: RecurrenceType,
         recurrenceDays: Set<Int>,
         time: LocalTime,
@@ -70,6 +71,7 @@ class RoutineCommands @Inject constructor(
             val scheduledAt = baseDate.atTime(time).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
             val updated = original.copy(
                 title = normalizedTitle,
+                iconEmoji = iconEmoji.trim().ifBlank { "🔁" },
                 content = normalizedTitle,
                 scheduledAt = scheduledAt,
                 recurrenceType = recurrenceType.name,
@@ -105,6 +107,7 @@ class RoutineCommands @Inject constructor(
             context = context,
             original = action,
             title = action.title,
+            iconEmoji = action.iconEmoji ?: "🔁",
             recurrenceType = recurrence,
             recurrenceDays = RecurrenceCalculator.recurrenceDays(action),
             time = time,

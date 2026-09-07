@@ -53,8 +53,9 @@ class RootViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
+    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val trashCommands: TrashCommands
-) : EventViewModel(uiEventBus) {
+) : EventViewModel(uiEventBus, commandRunner) {
     val uiEvents = uiEventBus.events
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     fun undo(event: AppUiEvent.Undo) = execute { trashCommands.undo(event) }

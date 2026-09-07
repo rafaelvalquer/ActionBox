@@ -185,6 +185,17 @@
     <string name="text_de_concluidas">%1$s de %2$s concluídas</string>
     <string name="text_proxima">Próxima</string>
     <string name="text_abrir">Abrir</string>
+    <string name="text_expandir_projeto">Expandir projeto %1$s</string>
+    <string name="text_recolher_projeto">Recolher projeto %1$s</string>
+    <string name="text_ver_projeto_completo">Ver projeto completo</string>
+    <string name="text_projeto_sem_tarefas">Nenhuma tarefa neste projeto.</string>
+    <string name="text_marcar_tarefa_concluida">Marcar %1$s como concluída</string>
+    <string name="text_reabrir_tarefa_com_titulo">Reabrir %1$s</string>
+    <string name="text_expandir_rotina">Expandir rotina %1$s</string>
+    <string name="text_recolher_rotina">Recolher rotina %1$s</string>
+    <string name="text_ver_rotina_completa">Ver rotina completa</string>
+    <string name="text_icone_da_rotina">Ícone da rotina</string>
+    <string name="text_emoji_personalizado">Emoji personalizado</string>
     <string name="text_editar">Editar</string>
     <string name="text_titulo_do_projeto">Título do projeto</string>
     <string name="text_descricao">Descrição</string>

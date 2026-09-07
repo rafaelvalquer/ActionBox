@@ -53,8 +53,9 @@ class SettingsViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
+    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val settingsCommands: SettingsCommands
-) : EventViewModel(uiEventBus) {
+) : EventViewModel(uiEventBus, commandRunner) {
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     fun setTheme(value: String) = execute { settingsCommands.setTheme(value) }
     fun setReplyTone(value: String) = execute { settingsCommands.setReplyTone(value) }

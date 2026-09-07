@@ -54,11 +54,12 @@ class RoutineViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
+    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands,
     private val organizationCommands: OrganizationCommands,
     private val routineCommands: RoutineCommands,
     savedStateHandle: SavedStateHandle
-) : EventViewModel(uiEventBus) {
+) : EventViewModel(uiEventBus, commandRunner) {
     private val id = savedStateHandle.get<String>("id")?.toLongOrNull() ?: -1L
     private val retry = MutableStateFlow(0)
     fun retry() { retry.value++ }
@@ -75,13 +76,14 @@ class RoutineViewModel @Inject constructor(
         context: Context,
         original: ActionEntity,
         title: String,
+        iconEmoji: String,
         recurrenceType: RecurrenceType,
         recurrenceDays: Set<Int>,
         time: LocalTime,
         reminderMinutes: Int?,
         priority: ActionPriority,
         paused: Boolean
-    ) = execute { routineCommands.saveRoutineEdits(context, original, title, recurrenceType, recurrenceDays, time, reminderMinutes, priority, paused) }
+    ) = execute { routineCommands.saveRoutineEdits(context, original, title, iconEmoji, recurrenceType, recurrenceDays, time, reminderMinutes, priority, paused) }
     fun setRoutinePaused(context: Context, action: ActionEntity, paused: Boolean) = execute { routineCommands.setRoutinePaused(context, action, paused) }
     fun toggleOccurrence(action: ActionEntity, date: LocalDate) = execute { actionCommands.toggleOccurrence(action, date) }
     fun delete(id: Long) = execute { actionCommands.delete(id) }

@@ -104,7 +104,7 @@ fun GlobalSearchScreen(
                     val kindResults = grouped[kind].orEmpty()
                     if (kindResults.isNotEmpty()) {
                         item(key = textResources.getString(R.string.text_header , kind.name)) {
-                            Text("${kind.emoji} ${kind.label.uppercase()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${kind.emoji} ${textResources.getString(kind.label).uppercase()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         items(kindResults, key = { "${it.kind.name}-${it.id}" }) { result ->
                             ActionCard(

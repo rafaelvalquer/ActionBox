@@ -143,6 +143,9 @@ fun RoutineDetailScreen(
 
         if (editing) {
             item {
+                RoutineEmojiSelector(value = edit.iconEmoji, onValueChange = { edit = edit.copy(iconEmoji = it) })
+            }
+            item {
                 OutlinedTextField(
                     value = edit.title,
                     onValueChange = { edit = edit.copy(title = it) },
@@ -251,6 +254,7 @@ fun RoutineDetailScreen(
                                     context = context,
                                     original = action,
                                     title = edit.title,
+                                    iconEmoji = edit.iconEmoji,
                                     recurrenceType = edit.recurrenceType,
                                     recurrenceDays = edit.recurrenceDays,
                                     time = parsed,
@@ -269,7 +273,7 @@ fun RoutineDetailScreen(
         } else {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("🏋️ ${action.title}", style = MaterialTheme.typography.headlineLarge)
+                    Text("${action.iconEmoji?.takeIf { it.isNotBlank() } ?: "🔁"} ${action.title}", style = MaterialTheme.typography.headlineLarge)
                     if (action.status == "CANCELLED") Text(textResources.getString(R.string.text_pausada), color = MaterialTheme.colorScheme.error)
                     Text(textResources.getString(R.string.text_sequencia_atual , streak), style = MaterialTheme.typography.titleMedium)
                     Text(textResources.getString(R.string.text_de_ocorrencias_este_mes , completed, occurrences.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
