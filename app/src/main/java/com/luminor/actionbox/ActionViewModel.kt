@@ -9,7 +9,6 @@ import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.data.local.ActionListEntity
 import com.luminor.actionbox.data.local.ListItemEntity
 import com.luminor.actionbox.data.local.ProjectEntity
-import com.luminor.actionbox.data.local.RoutineRuleEntity
 import com.luminor.actionbox.data.local.TagEntity
 import com.luminor.actionbox.domain.ActionPriority
 import com.luminor.actionbox.domain.ActionStatus
@@ -20,6 +19,9 @@ import com.luminor.actionbox.domain.OrganizationOwnerType
 import com.luminor.actionbox.domain.RecurrenceCalculator
 import com.luminor.actionbox.domain.RecurrenceType
 import com.luminor.actionbox.domain.UiSettings
+import com.luminor.actionbox.domain.reminder.ReminderPlanner
+import com.luminor.actionbox.domain.reminder.ScheduleReminderUseCase
+import com.luminor.actionbox.domain.routine.RoutineRuleFactory
 import com.luminor.actionbox.domain.search.SearchNormalizer
 import com.luminor.actionbox.notification.ReminderScheduler
 import com.luminor.actionbox.ui.events.AppUiEvent
@@ -31,7 +33,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 
@@ -39,6 +40,11 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
     private val app = application as ActionBoxApplication
     private val repository = app.repository
     private val settingsRepository = app.settingsRepository
+    private val routineRuleFactory = RoutineRuleFactory()
+    private val scheduleReminder = ScheduleReminderUseCase(
+        ReminderPlanner(),
+        ReminderScheduler(application.applicationContext)
+    )
 
     val pending = repository.pending.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val saved = repository.saved.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -69,7 +75,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
                 markOccurrence(entity, LocalDate.now(), true)
             } else {
                 repository.complete(id)
-                ReminderScheduler(getApplication()).cancel(id)
+                scheduleReminder.cancel(id)
             }
         }
     }
@@ -105,7 +111,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
     fun routineOccursOn(action: ActionEntity, date: LocalDate): Boolean {
         if (action.deletedAt != null) return false
         if (action.status == ActionStatus.CANCELLED.name && !date.isBefore(LocalDate.now())) return false
-        val dateMillis = startOfDayMillis(date)
+        val dateMillis = routineRuleFactory.startOfDayMillis(date)
         val rule = routineRules.value
             .asSequence()
             .filter { it.actionId == action.id }
@@ -174,7 +180,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
 
             val projectTasks = all.value.filter { it.projectId == project.id }
             projectTasks.filter { it.id in deletedTaskIds }.forEach { task ->
-                ReminderScheduler(getApplication()).cancel(task.id)
+                scheduleReminder.cancel(task.id)
                 repository.softDeleteAction(task.id)
             }
 
@@ -306,14 +312,17 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
                 status = if (paused) ActionStatus.CANCELLED.name else ActionStatus.PENDING.name,
                 updatedAt = System.currentTimeMillis()
             )
-            ReminderScheduler(context.applicationContext).cancel(original.id)
+            scheduleReminder.cancel(original.id)
             repository.update(updated)
 
             if (routineConfigurationChanged(original, updated)) {
-                val effectiveFrom = startOfDayMillis(LocalDate.now())
-                repository.replaceRoutineRule(ruleFromAction(updated, effectiveFrom), effectiveFrom - 1)
+                val effectiveFrom = routineRuleFactory.startOfDayMillis(LocalDate.now())
+                repository.replaceRoutineRule(
+                    routineRuleFactory.create(updated, effectiveFrom),
+                    effectiveFrom - 1
+                )
             }
-            if (!paused) scheduleIfNeeded(context, updated)
+            if (!paused) scheduleReminder(updated)
             _message.emit(if (paused) "Rotina pausada" else "Rotina atualizada")
         }
     }
@@ -342,17 +351,18 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateAction(context: Context, original: ActionEntity, updated: ActionEntity) {
         viewModelScope.launch {
-            val scheduler = ReminderScheduler(context.applicationContext)
-            scheduler.cancel(original.id)
             val normalized = updated.copy(id = original.id, updatedAt = System.currentTimeMillis())
             repository.update(normalized)
             if (routineConfigurationChanged(original, normalized) &&
                 RecurrenceCalculator.recurrenceType(normalized) != RecurrenceType.NONE
             ) {
-                val effectiveFrom = startOfDayMillis(LocalDate.now())
-                repository.replaceRoutineRule(ruleFromAction(normalized, effectiveFrom), effectiveFrom - 1)
+                val effectiveFrom = routineRuleFactory.startOfDayMillis(LocalDate.now())
+                repository.replaceRoutineRule(
+                    routineRuleFactory.create(normalized, effectiveFrom),
+                    effectiveFrom - 1
+                )
             }
-            scheduleIfNeeded(context, normalized)
+            scheduleReminder.reschedule(normalized)
             _message.emit("Ação atualizada")
         }
     }
@@ -372,19 +382,20 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
             val id = repository.insert(duplicate)
             val stored = duplicate.copy(id = id)
             if (RecurrenceCalculator.recurrenceType(stored) != RecurrenceType.NONE) {
+                val effectiveFrom = routineRuleFactory.startOfDayMillis(LocalDate.now())
                 repository.replaceRoutineRule(
-                    ruleFromAction(stored, startOfDayMillis(LocalDate.now())),
-                    startOfDayMillis(LocalDate.now()) - 1
+                    routineRuleFactory.create(stored, effectiveFrom),
+                    effectiveFrom - 1
                 )
             }
-            scheduleIfNeeded(context, stored)
+            scheduleReminder(stored)
             _message.emit("Ação duplicada")
         }
     }
 
     fun archive(id: Long) {
         viewModelScope.launch {
-            ReminderScheduler(getApplication()).cancel(id)
+            scheduleReminder.cancel(id)
             repository.archive(id)
             _message.emit("Item arquivado")
         }
@@ -392,7 +403,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
 
     fun delete(id: Long) {
         viewModelScope.launch {
-            ReminderScheduler(getApplication()).cancel(id)
+            scheduleReminder.cancel(id)
             repository.softDeleteAction(id)
             app.uiEventBus.undo("Item movido para a lixeira", UndoKind.ACTION, id)
         }
@@ -401,7 +412,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteProject(id: Long) {
         viewModelScope.launch {
             all.value.filter { it.projectId == id }.forEach {
-                ReminderScheduler(getApplication()).cancel(it.id)
+                scheduleReminder.cancel(it.id)
             }
             repository.softDeleteProjectCascade(id)
             app.uiEventBus.undo("Projeto movido para a lixeira", UndoKind.PROJECT, id)
@@ -412,7 +423,7 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             all.value
                 .filter { it.type == ActionType.LIST.name && it.metadata == id.toString() }
-                .forEach { ReminderScheduler(getApplication()).cancel(it.id) }
+                .forEach { scheduleReminder.cancel(it.id) }
             repository.softDeleteListCascade(id)
             app.uiEventBus.undo("Lista movida para a lixeira", UndoKind.LIST, id)
         }
@@ -524,32 +535,10 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearAllData() {
         viewModelScope.launch {
-            all.value.forEach { ReminderScheduler(getApplication()).cancel(it.id) }
+            all.value.forEach { scheduleReminder.cancel(it.id) }
             repository.deleteAll()
             _message.emit("Dados locais apagados")
         }
-    }
-
-    private fun scheduleIfNeeded(context: Context, action: ActionEntity) {
-        if (action.deletedAt != null ||
-            action.status == ActionStatus.CANCELLED.name ||
-            action.status == ActionStatus.ARCHIVED.name
-        ) return
-
-        val shouldNotify = action.type == ActionType.REMINDER.name || action.reminderMinutes != null
-        if (!shouldNotify || action.scheduledAt == null) return
-
-        val now = LocalDateTime.now()
-        val base = if (RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) {
-            Instant.ofEpochMilli(action.scheduledAt)
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime()
-        } else {
-            RecurrenceCalculator.nextOccurrence(action, now.minusSeconds(1)) ?: return
-        }
-        val trigger = base.minusMinutes((action.reminderMinutes ?: 0).toLong())
-        val triggerMillis = trigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        ReminderScheduler(context.applicationContext).schedule(action.id, action.title, triggerMillis)
     }
 
     private fun routineConfigurationChanged(original: ActionEntity, updated: ActionEntity): Boolean {
@@ -565,23 +554,6 @@ class ActionViewModel(application: Application) : AndroidViewModel(application) 
             originalTime != updatedTime
     }
 
-    private fun ruleFromAction(action: ActionEntity, effectiveFrom: Long): RoutineRuleEntity {
-        val localTime = action.scheduledAt?.let {
-            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalTime()
-        }
-        return RoutineRuleEntity(
-            actionId = action.id,
-            effectiveFrom = effectiveFrom,
-            recurrenceType = action.recurrenceType ?: RecurrenceType.NONE.name,
-            recurrenceDays = action.recurrenceDays,
-            scheduledTimeMinutes = localTime?.let { it.hour * 60 + it.minute },
-            reminderMinutes = action.reminderMinutes
-        )
-    }
-
     private fun Long.toLocalDate(): LocalDate =
         Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()).toLocalDate()
-
-    private fun startOfDayMillis(date: LocalDate): Long =
-        date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 }
