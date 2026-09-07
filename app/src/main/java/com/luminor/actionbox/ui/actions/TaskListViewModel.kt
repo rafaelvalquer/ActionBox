@@ -53,9 +53,8 @@ class TaskListViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
-    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands
-) : EventViewModel(uiEventBus, commandRunner) {
+) : EventViewModel(uiEventBus) {
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     val pending = repository.pending.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     fun complete(id: Long) = execute { actionCommands.complete(id) }

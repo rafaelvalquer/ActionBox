@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZoneId
 
 import javax.inject.Inject
@@ -46,6 +47,7 @@ import com.luminor.actionbox.domain.commands.*
 import com.luminor.actionbox.ui.events.EventViewModel
 import com.luminor.actionbox.domain.routine.RoutineEvaluation
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 
 @HiltViewModel
@@ -53,12 +55,18 @@ class AgendaViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
-    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
-    private val actionCommands: ActionCommands
-) : EventViewModel(uiEventBus, commandRunner) {
+    private val actionCommands: ActionCommands,
+    private val savedStateHandle: SavedStateHandle
+) : EventViewModel(uiEventBus) {
+    private val navigationState = AgendaSavedState(savedStateHandle)
+    val modeName = navigationState.modeName
+    val selectedDateText = navigationState.selectedDateText
+    val displayedMonthText = navigationState.displayedMonthText
     private val period = MutableStateFlow(LocalDate.now() to LocalDate.now())
     fun setPeriod(start: LocalDate, end: LocalDate) { period.value = start to end }
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val actionsFlow = period.flatMapLatest { (start, end) -> repository.observeAgenda(start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()) }
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val completionFlow = period.flatMapLatest { (start, end) -> repository.observePeriodCompletions(start.toString(), end.toString()) }
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     val all = actionsFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -67,4 +75,9 @@ class AgendaViewModel @Inject constructor(
     fun isCompletedOn(action: ActionEntity, date: LocalDate) = RoutineEvaluation.isCompletedOn(action, date, completions.value)
     fun routineOccursOn(action: ActionEntity, date: LocalDate) = RoutineEvaluation.routineOccursOn(action, date, routineRules.value)
     fun toggleOccurrence(action: ActionEntity, date: LocalDate) = execute { actionCommands.toggleOccurrence(action, date) }
+    fun setMode(mode: AgendaMode) = navigationState.setMode(mode)
+    fun setSelectedDate(date: LocalDate) = navigationState.setSelectedDate(date)
+    fun changeMonth(next: YearMonth) = navigationState.changeMonth(next)
+    fun scrollPosition(mode: AgendaMode): Pair<Int, Int> = navigationState.scrollPosition(mode)
+    fun updateScroll(mode: AgendaMode, index: Int, offset: Int) = navigationState.updateScroll(mode, index, offset)
 }

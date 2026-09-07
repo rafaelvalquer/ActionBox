@@ -46,6 +46,10 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -86,6 +90,9 @@ dependencies {
     implementation(libs.work.work.runtime.ktx)
 
     testImplementation(libs.junit.junit)
+    // AGP 9 with the legacy Kotlin plugin omits Kotlin classes from the unit-test runtime JAR.
+    // The compile JAR is produced before test execution and keeps the app classes available to JVM tests.
+    testRuntimeOnly(files(layout.buildDirectory.file("intermediates/compile_app_classes_jar/debug/bundleDebugClassesToCompileJar/classes.jar")))
     androidTestImplementation(libs.test.ext.junit)
     androidTestImplementation(libs.test.espresso.espresso.core)
     androidTestImplementation(libs.compose.ui.ui.test.junit4)

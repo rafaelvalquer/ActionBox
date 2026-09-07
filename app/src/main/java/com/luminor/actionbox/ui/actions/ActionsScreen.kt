@@ -17,7 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,7 +50,7 @@ fun ActionsScreen(viewModel: TaskListViewModel) {
             Text(textResources.getString(R.string.text_acoes), style = MaterialTheme.typography.headlineMedium)
             Text(textResources.getString(R.string.text_tudo_que_ainda_precisa_de_voce), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        TabRow(selectedTabIndex = tab) {
+        PrimaryTabRow(selectedTabIndex = tab) {
             tabs.forEachIndexed { index, text ->
                 Tab(selected = tab == index, onClick = { tab = index }, text = { Text(text) })
             }

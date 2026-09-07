@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,10 +37,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -69,8 +69,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-private enum class AgendaMode { DAY, WEEK, MONTH, LIST }
-
 @Composable
 fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
     val textResources = androidx.compose.ui.platform.LocalContext.current.resources
@@ -79,11 +77,21 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val completions by viewModel.completions.collectAsStateWithLifecycle()
     val rules by viewModel.routineRules.collectAsStateWithLifecycle()
-    var modeName by rememberSaveable { mutableStateOf(AgendaMode.MONTH.name) }
+    val modeName by viewModel.modeName.collectAsStateWithLifecycle()
     val mode = runCatching { AgendaMode.valueOf(modeName) }.getOrDefault(AgendaMode.MONTH)
-    var month by remember { mutableStateOf(YearMonth.now()) }
-    var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
+    val selected by viewModel.selectedDateText.collectAsStateWithLifecycle()
+    val monthText by viewModel.displayedMonthText.collectAsStateWithLifecycle()
+    val month = runCatching { YearMonth.parse(monthText) }.getOrDefault(YearMonth.now())
     val selectedDate = runCatching { LocalDate.parse(selected) }.getOrDefault(LocalDate.now())
+    val agendaListState = rememberLazyListState()
+    androidx.compose.runtime.LaunchedEffect(mode) {
+        val (index, offset) = viewModel.scrollPosition(mode)
+        agendaListState.scrollToItem(index.coerceAtLeast(0), offset.coerceAtLeast(0))
+    }
+    androidx.compose.runtime.LaunchedEffect(agendaListState, mode) {
+        snapshotFlow { agendaListState.firstVisibleItemIndex to agendaListState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) -> viewModel.updateScroll(mode, index, offset) }
+    }
     androidx.compose.runtime.LaunchedEffect(month, selectedDate, mode) {
         // Include spillover weeks in the month grid and the upcoming list window.
         val start = minOf(month.atDay(1).minusDays(7), selectedDate.minusDays(7))
@@ -93,14 +101,7 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
     var dragTotal by remember { mutableFloatStateOf(0f) }
 
     fun setSelected(date: LocalDate) {
-        selected = date.toString()
-        month = YearMonth.from(date)
-    }
-
-    fun changeMonth(next: YearMonth) {
-        month = next
-        val day = selectedDate.dayOfMonth.coerceAtMost(next.lengthOfMonth())
-        selected = next.atDay(day).toString()
+        viewModel.setSelectedDate(date)
     }
 
     fun entries(date: LocalDate): List<ActionEntity> = AgendaUseCase.entriesForDay(date, all) { action, day ->
@@ -110,6 +111,7 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
+            state = agendaListState,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
@@ -125,7 +127,7 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
                     ActionSegmentedControl(
                         listOf(textResources.getString(R.string.text_dia), textResources.getString(R.string.text_semana), textResources.getString(R.string.text_mes), textResources.getString(R.string.text_lista)),
                         AgendaMode.entries.indexOf(mode),
-                        onSelected = { modeName = AgendaMode.entries[it].name }
+                        onSelected = { viewModel.setMode(AgendaMode.entries[it]) }
                     )
                 }
             }
@@ -179,7 +181,7 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                IconButton(onClick = { changeMonth(month.minusMonths(1)) }) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_mes_anterior)) }
+                                IconButton(onClick = { viewModel.changeMonth(month.minusMonths(1)) }) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_mes_anterior)) }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         "${month.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() }} ${month.year}",
@@ -187,7 +189,7 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
                                     )
                                     TextButton(onClick = { setSelected(LocalDate.now()) }) { Text(textResources.getString(R.string.text_hoje)) }
                                 }
-                                IconButton(onClick = { changeMonth(month.plusMonths(1)) }) { Icon(ActionBoxIcons.Next, contentDescription = textResources.getString(R.string.text_proximo_mes)) }
+                                IconButton(onClick = { viewModel.changeMonth(month.plusMonths(1)) }) { Icon(ActionBoxIcons.Next, contentDescription = textResources.getString(R.string.text_proximo_mes)) }
                             }
 
                             AnimatedContent(
@@ -210,8 +212,8 @@ fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
                                             onHorizontalDrag = { _, amount -> dragTotal += amount },
                                             onDragEnd = {
                                                 when {
-                                                    dragTotal < -80f -> changeMonth(targetMonth.plusMonths(1))
-                                                    dragTotal > 80f -> changeMonth(targetMonth.minusMonths(1))
+                                                    dragTotal < -80f -> viewModel.changeMonth(targetMonth.plusMonths(1))
+                                                    dragTotal > 80f -> viewModel.changeMonth(targetMonth.minusMonths(1))
                                                 }
                                                 dragTotal = 0f
                                             }

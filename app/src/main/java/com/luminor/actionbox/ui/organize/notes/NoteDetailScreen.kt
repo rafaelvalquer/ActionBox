@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.DropdownMenu
@@ -97,7 +97,7 @@ fun NoteDetailScreen(viewModel: NoteDetailViewModel, note: ActionEntity, onBack:
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth()) {
-                IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, contentDescription = textResources.getString(R.string.text_voltar)) }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = textResources.getString(R.string.text_voltar)) }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = ::save) { Text(textResources.getString(R.string.text_salvar), color = MaterialTheme.colorScheme.primary) }
                 IconButton(onClick = { pinned = !pinned }) {

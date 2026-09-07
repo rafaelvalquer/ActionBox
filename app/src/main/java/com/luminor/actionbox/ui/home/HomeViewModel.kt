@@ -53,12 +53,13 @@ class HomeViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
-    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands
-) : EventViewModel(uiEventBus, commandRunner) {
+) : EventViewModel(uiEventBus) {
     private val period = MutableStateFlow(LocalDate.now() to LocalDate.now())
     fun setPeriod(start: LocalDate, end: LocalDate) { period.value = start to end }
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val actionsFlow = period.flatMapLatest { (start, end) -> repository.observeAgenda(start.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), end.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()) }
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val completionFlow = period.flatMapLatest { (start, end) -> repository.observePeriodCompletions(start.toString(), end.toString()) }
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     val all = actionsFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

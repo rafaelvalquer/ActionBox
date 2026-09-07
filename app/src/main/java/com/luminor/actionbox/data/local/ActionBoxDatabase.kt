@@ -96,6 +96,15 @@ abstract class ActionBoxDatabase : RoomDatabase() {
             }
         }
 
+        @JvmField
+        val ALL_MIGRATIONS = arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6
+        )
+
         fun getInstance(context: Context): ActionBoxDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -103,7 +112,7 @@ abstract class ActionBoxDatabase : RoomDatabase() {
                     ActionBoxDatabase::class.java,
                     "actionbox.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                     .also { INSTANCE = it }
             }

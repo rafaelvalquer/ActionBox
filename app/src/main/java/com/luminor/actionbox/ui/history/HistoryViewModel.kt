@@ -54,9 +54,8 @@ class HistoryViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
-    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands
-) : EventViewModel(uiEventBus, commandRunner) {
+) : EventViewModel(uiEventBus) {
     val history = androidx.paging.Pager(androidx.paging.PagingConfig(pageSize = 30, initialLoadSize = 60, prefetchDistance = 10, maxSize = 150, enablePlaceholders = false), pagingSourceFactory = repository::historyPagingSource).flow.cachedIn(viewModelScope)
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     fun delete(id: Long) = execute { actionCommands.delete(id) }

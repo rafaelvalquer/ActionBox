@@ -13,15 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -52,6 +52,10 @@ fun OrganizeScreen(
 ) {
     val textResources = androidx.compose.ui.platform.LocalContext.current.resources
 
+    LaunchedEffect(notesViewModel) {
+        notesViewModel.createdNoteIds.collect { onNoteOpen(it) }
+    }
+
     val section by organizeViewModel.selectedSection.collectAsStateWithLifecycle()
     val all = when (section) {
         0 -> organizeViewModel.projectActions.collectAsStateWithLifecycle().value
@@ -69,7 +73,20 @@ fun OrganizeScreen(
     val tagRefs by organizeViewModel.tagRefs.collectAsStateWithLifecycle()
     val expandedProjectIds by organizeViewModel.expandedProjectIds.collectAsStateWithLifecycle()
     val expandedRoutineIds by organizeViewModel.expandedRoutineIds.collectAsStateWithLifecycle()
-    var selectedTagId by remember { mutableStateOf<Long?>(null) }
+    val selectedTagId by organizeViewModel.selectedTagId.collectAsStateWithLifecycle()
+    val organizeSection = OrganizeSection.entries.getOrElse(section) { OrganizeSection.PROJECTS }
+    val listState = rememberLazyListState()
+
+    if (section != 3) {
+        LaunchedEffect(organizeSection) {
+            val (index, offset) = organizeViewModel.scrollPosition(organizeSection)
+            listState.scrollToItem(index.coerceAtLeast(0), offset.coerceAtLeast(0))
+        }
+        LaunchedEffect(listState, organizeSection) {
+            snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                .collect { (index, offset) -> organizeViewModel.updateScroll(organizeSection, index, offset) }
+        }
+    }
 
     fun ownerHasSelectedTag(ownerType: String, ownerId: Long): Boolean =
         selectedTagId == null || tagRefs.any {
@@ -98,17 +115,29 @@ fun OrganizeScreen(
             }
             ActionSegmentedControl(listOf(textResources.getString(R.string.text_projetos), textResources.getString(R.string.text_listas), textResources.getString(R.string.text_rotinas), textResources.getString(R.string.text_notas)), section, onSelected = organizeViewModel::setSelectedSection)
             if (tags.isNotEmpty()) {
-                TagFilterBar(tags = tags, selectedTagId = selectedTagId, onSelected = { selectedTagId = it })
+                TagFilterBar(tags = tags, selectedTagId = selectedTagId, onSelected = organizeViewModel::selectTag)
             }
         }
 
         if (section == 3) {
-            NotesBoard(notes = visibleNotes, onUpdate = { context, original, updated -> organizeViewModel.updateAction(context, original, updated) }, onArchive = { organizeViewModel.archive(it) }, onDelete = { organizeViewModel.delete(it) }, onCreate = { notesViewModel.createBlankNote() }, onOpen = onNoteOpen)
+            val (notesIndex, notesOffset) = organizeViewModel.scrollPosition(OrganizeSection.NOTES)
+            NotesBoard(
+                notes = visibleNotes,
+                onUpdate = { context, original, updated -> organizeViewModel.updateAction(context, original, updated) },
+                onArchive = { organizeViewModel.archive(it) },
+                onDelete = { organizeViewModel.delete(it) },
+                onCreate = { notesViewModel.createBlankNote() },
+                onOpen = onNoteOpen,
+                initialScrollIndex = notesIndex,
+                initialScrollOffset = notesOffset,
+                onScrollChanged = { index, offset -> organizeViewModel.updateScroll(OrganizeSection.NOTES, index, offset) }
+            )
         } else {
             Box(Modifier.weight(1f)) {
                 LazyColumn(
                     modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    state = listState
                 ) {
                     when (section) {
                         0 -> {

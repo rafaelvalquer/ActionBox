@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,7 +46,7 @@ private enum class NoteSort(val label: Int) { RECENT(R.string.text_mais_recentes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesBoard(notes: List<ActionEntity>, onUpdate: (android.content.Context, ActionEntity, ActionEntity) -> Unit, onArchive: (Long) -> Unit, onDelete: (Long) -> Unit, onCreate: () -> Unit, onOpen: (Long) -> Unit) {
+fun NotesBoard(notes: List<ActionEntity>, onUpdate: (android.content.Context, ActionEntity, ActionEntity) -> Unit, onArchive: (Long) -> Unit, onDelete: (Long) -> Unit, onCreate: () -> Unit, onOpen: (Long) -> Unit, initialScrollIndex: Int = 0, initialScrollOffset: Int = 0, onScrollChanged: (Int, Int) -> Unit = { _, _ -> }) {
     val textResources = androidx.compose.ui.platform.LocalContext.current.resources
 
     val context = LocalContext.current
@@ -54,13 +56,11 @@ fun NotesBoard(notes: List<ActionEntity>, onUpdate: (android.content.Context, Ac
     var searchVisible by remember { mutableStateOf(false) }
     var menuNote by remember { mutableStateOf<ActionEntity?>(null) }
     var sortOpen by remember { mutableStateOf(false) }
-    var waitingForNewNote by remember { mutableStateOf(false) }
+    val gridState = rememberLazyStaggeredGridState(initialFirstVisibleItemIndex = initialScrollIndex, initialFirstVisibleItemScrollOffset = initialScrollOffset)
 
-    LaunchedEffect(notes.size) {
-        if (waitingForNewNote && notes.isNotEmpty()) {
-            waitingForNewNote = false
-            notes.maxByOrNull { it.createdAt }?.let { onOpen(it.id) }
-        }
+    LaunchedEffect(gridState) {
+        snapshotFlow { gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) -> onScrollChanged(index, offset) }
     }
 
     val filtered = notes.filter { note ->
@@ -95,7 +95,6 @@ fun NotesBoard(notes: List<ActionEntity>, onUpdate: (android.content.Context, Ac
             }
             IconButton(onClick = { searchVisible = !searchVisible }) { Icon(Icons.Rounded.Search, contentDescription = textResources.getString(R.string.text_buscar_notas)) }
             Surface(onClick = {
-                waitingForNewNote = true
                 onCreate()
             }, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
                 Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -117,7 +116,8 @@ fun NotesBoard(notes: List<ActionEntity>, onUpdate: (android.content.Context, Ac
             columns = StaggeredGridCells.Fixed(2),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalItemSpacing = 10.dp,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            state = gridState
         ) {
             if (pinned.isNotEmpty()) {
                 item(span = StaggeredGridItemSpan.FullLine) { Text(textResources.getString(R.string.text_fixadas , pinned.size), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }

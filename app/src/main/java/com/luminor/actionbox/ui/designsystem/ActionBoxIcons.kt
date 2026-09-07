@@ -2,7 +2,7 @@ package com.luminor.actionbox.ui.designsystem
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material.icons.rounded.BookmarkBorder
@@ -20,10 +20,11 @@ import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.NavigateBefore
-import androidx.compose.material.icons.rounded.NavigateNext
+import androidx.compose.material.icons.automirrored.rounded.NavigateBefore
+import androidx.compose.material.icons.automirrored.rounded.NavigateNext
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.StickyNote2
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Schedule
@@ -43,10 +44,10 @@ object ActionBoxIcons {
     val Saved = Icons.Rounded.BookmarkBorder
     val Settings = Icons.Rounded.Settings
     val Paste = Icons.Rounded.ContentPaste
-    val Arrow = Icons.Rounded.ArrowForward
+    val Arrow = Icons.AutoMirrored.Rounded.ArrowForward
     val More = Icons.Rounded.MoreVert
-    val Back = Icons.Rounded.NavigateBefore
-    val Next = Icons.Rounded.NavigateNext
+    val Back = Icons.AutoMirrored.Rounded.NavigateBefore
+    val Next = Icons.AutoMirrored.Rounded.NavigateNext
     val Check = Icons.Rounded.Check
     val EmptyCheck = Icons.Rounded.RadioButtonUnchecked
     val Repeat = Icons.Rounded.Repeat
@@ -58,13 +59,13 @@ object ActionBoxIcons {
     val Share = Icons.Rounded.Share
     val Copy = Icons.Rounded.ContentCopy
     val Delete = Icons.Rounded.Delete
-    val Open = Icons.Rounded.OpenInNew
+    val Open = Icons.AutoMirrored.Rounded.OpenInNew
     val Fire = Icons.Rounded.LocalFireDepartment
 
     fun forType(type: String): ImageVector = when (type) {
         ActionType.REMINDER.name -> Icons.Rounded.Notifications
         ActionType.EVENT.name -> Icons.Rounded.Event
-        ActionType.NOTE.name -> Icons.Rounded.StickyNote2
+        ActionType.NOTE.name -> Icons.AutoMirrored.Rounded.StickyNote2
         ActionType.LIST.name -> Icons.Rounded.Checklist
         ActionType.PROJECT.name -> Icons.Rounded.Folder
         ActionType.READ_LATER.name -> Icons.Rounded.Bookmark

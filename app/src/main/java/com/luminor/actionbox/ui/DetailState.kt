@@ -34,7 +34,6 @@ fun <T> DetailContent(state: DetailState<T>, onBack: () -> Unit, onRetry: () -> 
                     Text("Não foi possível carregar este item.")
                     TextButton(onClick = onRetry) { Text("Tentar novamente") }
                 }
-                else -> Unit
             }
         }
     }

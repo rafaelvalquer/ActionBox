@@ -50,7 +50,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.luminor.actionbox.ui.RootViewModel
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.luminor.actionbox.ui.DetailContent
 import com.luminor.actionbox.ui.actions.ActionEditorScreen
 import com.luminor.actionbox.ui.agenda.AgendaScreen

@@ -3,7 +3,6 @@ package com.luminor.actionbox.ui.organize
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import com.luminor.actionbox.domain.routine.RoutineEvaluation
@@ -14,16 +13,10 @@ class OrganizeViewModel @javax.inject.Inject constructor(
     private val actionCommands: com.luminor.actionbox.domain.commands.ActionCommands,
     private val listCommands: com.luminor.actionbox.domain.commands.ListCommands,
     private val settingsRepository: com.luminor.actionbox.data.preferences.SettingsRepository,
-    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     uiEventBus: com.luminor.actionbox.ui.events.AppUiEventBus,
     private val savedStateHandle: SavedStateHandle
-) : com.luminor.actionbox.ui.events.EventViewModel(uiEventBus, commandRunner) {
-
-    private companion object {
-        const val KEY_EXPANDED_PROJECTS = "organize_expanded_project_ids"
-        const val KEY_EXPANDED_ROUTINES = "organize_expanded_routine_ids"
-        const val KEY_SELECTED_SECTION = "organize_selected_section"
-    }
+) : com.luminor.actionbox.ui.events.EventViewModel(uiEventBus) {
+    private val navigationState = OrganizeSavedState(savedStateHandle)
 
     val projectActions = repository.observeAllProjectActions().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val actions = repository.observeRoutines().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -52,31 +45,30 @@ class OrganizeViewModel @javax.inject.Inject constructor(
     val tags = repository.tags.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     val tagRefs = repository.tagRefs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val expandedProjectIds = savedStateHandle
-        .getStateFlow(KEY_EXPANDED_PROJECTS, emptyList<Long>())
-        .map { it.toSet() }
+    val expandedProjectIds = navigationState.expandedProjectIds
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
-    val expandedRoutineIds = savedStateHandle
-        .getStateFlow(KEY_EXPANDED_ROUTINES, emptyList<Long>())
-        .map { it.toSet() }
+    val expandedRoutineIds = navigationState.expandedRoutineIds
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
-    val selectedSection = savedStateHandle.getStateFlow(KEY_SELECTED_SECTION, 0)
+    val selectedSection = navigationState.selectedSection
+    val selectedTagId = navigationState.selectedTagId
 
     fun setSelectedSection(section: Int) {
-        savedStateHandle[KEY_SELECTED_SECTION] = section
+        navigationState.setSelectedSection(section)
+    }
+    fun selectTag(tagId: Long?) = navigationState.selectTag(tagId)
+
+    fun scrollPosition(section: OrganizeSection): Pair<Int, Int> =
+        navigationState.scrollPosition(section)
+
+    fun updateScroll(section: OrganizeSection, index: Int, offset: Int) {
+        navigationState.updateScroll(section, index, offset)
     }
 
     fun toggleProjectExpanded(projectId: Long) {
-        val current = savedStateHandle.get<List<Long>>(KEY_EXPANDED_PROJECTS).orEmpty().toSet()
-        savedStateHandle[KEY_EXPANDED_PROJECTS] = if (projectId in current) {
-            current - projectId
-        } else {
-            current + projectId
-        }.toList()
+        navigationState.toggleProjectExpanded(projectId)
     }
 
     fun toggleRoutineExpanded(routineId: Long) {
-        val current = savedStateHandle.get<List<Long>>(KEY_EXPANDED_ROUTINES).orEmpty().toSet()
-        savedStateHandle[KEY_EXPANDED_ROUTINES] = if (routineId in current) current - routineId else current + routineId
+        navigationState.toggleRoutineExpanded(routineId)
     }
 }

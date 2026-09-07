@@ -54,10 +54,9 @@ class SavedDetailViewModel @Inject constructor(
     private val repository: ActionRepository,
     settingsRepository: SettingsRepository,
     uiEventBus: AppUiEventBus,
-    commandRunner: com.luminor.actionbox.ui.events.CommandRunner,
     private val actionCommands: ActionCommands,
     savedStateHandle: SavedStateHandle
-) : EventViewModel(uiEventBus, commandRunner) {
+) : EventViewModel(uiEventBus) {
     fun addToSystemCalendar(context: Context, action: ActionEntity) {
         val detected = DetectedAction(
             type = ActionType.EVENT,
@@ -78,6 +77,7 @@ class SavedDetailViewModel @Inject constructor(
     }    private val id = savedStateHandle.get<String>("id")?.toLongOrNull() ?: -1L
     private val retry = MutableStateFlow(0)
     fun retry() { retry.value++ }
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val detail = retry.flatMapLatest { repository.observeAction(id).detailState() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.luminor.actionbox.ui.DetailState.Loading)
     val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiSettings())
     val saved = repository.observeAction(id).map { listOfNotNull(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
