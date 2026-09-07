@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.saved
 
+import com.luminor.actionbox.R
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.saved.SavedDetailViewModel
 import com.luminor.actionbox.domain.ExternalActions
 import com.luminor.actionbox.ui.designsystem.ActionBoxIcons
 import com.luminor.actionbox.ui.designsystem.components.ActionButton
@@ -31,7 +32,9 @@ import com.luminor.actionbox.ui.motion.SharedKeys
 import com.luminor.actionbox.ui.motion.actionSharedBounds
 
 @Composable
-fun SavedDetailScreen(viewModel: ActionViewModel, id: Long, onBack: () -> Unit) {
+fun SavedDetailScreen(viewModel: SavedDetailViewModel, id: Long, onBack: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val item = saved.firstOrNull { it.id == id } ?: return
     val context = LocalContext.current
@@ -49,8 +52,8 @@ fun SavedDetailScreen(viewModel: ActionViewModel, id: Long, onBack: () -> Unit) 
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
-                Text("Depois", style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
+                Text(textResources.getString(R.string.text_depois), style = MaterialTheme.typography.titleLarge)
             }
             Text(item.title, style = MaterialTheme.typography.headlineLarge)
             ActionCard {
@@ -59,18 +62,18 @@ fun SavedDetailScreen(viewModel: ActionViewModel, id: Long, onBack: () -> Unit) 
                     if (item.content.isNotBlank() && item.content != link) Text(item.content, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            ActionButton("Abrir conteúdo", onClick = { viewModel.openSaved(context, item.sourceUrl) })
+            ActionButton(textResources.getString(R.string.text_abrir_conteudo), onClick = { viewModel.openSaved(context, item.sourceUrl) })
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                androidx.compose.material3.OutlinedButton(onClick = { ExternalActions.copy(context, "Link", link) }, modifier = Modifier.weight(1f)) { Text("Copiar") }
-                androidx.compose.material3.OutlinedButton(onClick = { shareSaved(context, link) }, modifier = Modifier.weight(1f)) { Text("Compartilhar") }
+                androidx.compose.material3.OutlinedButton(onClick = { ExternalActions.copy(context, textResources.getString(R.string.text_link), link) }, modifier = Modifier.weight(1f)) { Text(textResources.getString(R.string.text_copiar)) }
+                androidx.compose.material3.OutlinedButton(onClick = { shareSaved(context, link) }, modifier = Modifier.weight(1f)) { Text(textResources.getString(R.string.text_compartilhar)) }
             }
-            androidx.compose.material3.TextButton(onClick = { viewModel.archive(item.id); onBack() }) { Text("Arquivar") }
-            androidx.compose.material3.TextButton(onClick = { viewModel.delete(item.id); onBack() }) { Text("Excluir") }
+            androidx.compose.material3.TextButton(onClick = { viewModel.archive(item.id); onBack() }) { Text(textResources.getString(R.string.text_arquivar)) }
+            androidx.compose.material3.TextButton(onClick = { viewModel.delete(item.id); onBack() }) { Text(textResources.getString(R.string.text_excluir)) }
         }
     }
 }
 
 private fun shareSaved(context: Context, text: String) {
     val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
-    context.startActivity(Intent.createChooser(send, "Compartilhar").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    context.startActivity(Intent.createChooser(send, context.getString(R.string.text_compartilhar)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

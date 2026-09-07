@@ -12,11 +12,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-class ActionBoxApplication : Application() {
-    val database: ActionBoxDatabase by lazy { ActionBoxDatabase.getInstance(this) }
-    val repository: ActionRepository by lazy { ActionRepository(database) }
-    val settingsRepository: SettingsRepository by lazy { SettingsRepository(this) }
-    val uiEventBus: AppUiEventBus by lazy { AppUiEventBus() }
+@dagger.hilt.android.HiltAndroidApp
+class ActionBoxApplication : Application(), androidx.work.Configuration.Provider {
+    @javax.inject.Inject lateinit var repository: ActionRepository
+    @javax.inject.Inject lateinit var workerFactory: androidx.hilt.work.HiltWorkerFactory
+    override val workManagerConfiguration: androidx.work.Configuration
+        get() = androidx.work.Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

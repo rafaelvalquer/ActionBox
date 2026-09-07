@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize
 
+import com.luminor.actionbox.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.organize.ProjectViewModel
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.OrganizationOwnerType
 import com.luminor.actionbox.ui.components.ReorderHandle
@@ -60,11 +61,13 @@ private data class ProjectTaskDraft(
 
 @Composable
 fun ProjectDetailScreen(
-    viewModel: ActionViewModel,
+    viewModel: ProjectViewModel,
     projectId: Long,
     onBack: () -> Unit,
     onNoteOpen: (Long) -> Unit = {}
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val all by viewModel.all.collectAsStateWithLifecycle()
     val notes by viewModel.notes.collectAsStateWithLifecycle()
@@ -139,14 +142,14 @@ fun ProjectDetailScreen(
         ) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { requestBack() }) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
-                    Text("Projeto", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    IconButton(onClick = { requestBack() }) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
+                    Text(textResources.getString(R.string.text_projeto), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     if (editing) {
-                        TextButton(onClick = { if (hasChanges) showDiscardDialog = true else leaveEditing() }) { Text("Cancelar") }
+                        TextButton(onClick = { if (hasChanges) showDiscardDialog = true else leaveEditing() }) { Text(textResources.getString(R.string.text_cancelar)) }
                     } else {
                         TextButton(onClick = { beginEditing() }) {
                             Icon(Icons.Rounded.Edit, contentDescription = null)
-                            Text("Editar")
+                            Text(textResources.getString(R.string.text_editar))
                         }
                     }
                 }
@@ -157,7 +160,7 @@ fun ProjectDetailScreen(
                     OutlinedTextField(
                         value = draftTitle,
                         onValueChange = { draftTitle = it },
-                        label = { Text("Título do projeto") },
+                        label = { Text(textResources.getString(R.string.text_titulo_do_projeto)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -166,7 +169,7 @@ fun ProjectDetailScreen(
                     OutlinedTextField(
                         value = draftDescription,
                         onValueChange = { draftDescription = it },
-                        label = { Text("Descrição") },
+                        label = { Text(textResources.getString(R.string.text_descricao)) },
                         minLines = 2,
                         maxLines = 5,
                         modifier = Modifier.fillMaxWidth()
@@ -174,13 +177,13 @@ fun ProjectDetailScreen(
                 }
                 item {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("Tarefas", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Text(textResources.getString(R.string.text_tarefas), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                         Text("${draftTasks.size}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 itemsIndexed(
                     draftTasks,
-                    key = { index, draft -> draft.id?.let { "task-$it" } ?: "new-$index-${draft.title}" }
+                    key = { index, draft -> draft.id?.let { textResources.getString(R.string.text_task , it) } ?: textResources.getString(R.string.text_new , index, draft.title) }
                 ) { index, draft ->
                     val originalTask = draft.id?.let { id -> tasks.firstOrNull { it.id == id } }
                     ActionCard {
@@ -204,7 +207,7 @@ fun ProjectDetailScreen(
                                 modifier = Modifier.weight(1f).padding(start = 8.dp)
                             )
                             IconButton(onClick = { draftTasks = draftTasks.toMutableList().also { it.removeAt(index) } }) {
-                                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remover tarefa", tint = MaterialTheme.colorScheme.error)
+                                Icon(Icons.Rounded.DeleteOutline, contentDescription = textResources.getString(R.string.text_remover_tarefa), tint = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
@@ -215,7 +218,7 @@ fun ProjectDetailScreen(
                             OutlinedTextField(
                                 value = newTaskText,
                                 onValueChange = { newTaskText = it },
-                                label = { Text("Nova tarefa") },
+                                label = { Text(textResources.getString(R.string.text_nova_tarefa)) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
@@ -228,7 +231,7 @@ fun ProjectDetailScreen(
                                     }
                                 },
                                 enabled = newTaskText.isNotBlank()
-                            ) { Icon(Icons.Rounded.Add, contentDescription = "Adicionar tarefa") }
+                            ) { Icon(Icons.Rounded.Add, contentDescription = textResources.getString(R.string.text_adicionar_tarefa)) }
                         }
                     }
                 }
@@ -237,7 +240,7 @@ fun ProjectDetailScreen(
                         OutlinedButton(
                             onClick = { if (hasChanges) showDiscardDialog = true else leaveEditing() },
                             modifier = Modifier.weight(1f)
-                        ) { Text("Cancelar") }
+                        ) { Text(textResources.getString(R.string.text_cancelar)) }
                         Button(
                             onClick = {
                                 val existingTitles = draftTasks.mapNotNull { draft -> draft.id?.let { id -> id to draft.title.trim() } }.toMap()
@@ -256,7 +259,7 @@ fun ProjectDetailScreen(
                             },
                             enabled = canSave,
                             modifier = Modifier.weight(1f)
-                        ) { Text("Salvar") }
+                        ) { Text(textResources.getString(R.string.text_salvar)) }
                     }
                 }
             } else {
@@ -268,7 +271,7 @@ fun ProjectDetailScreen(
                             textDecoration = if (project.completedAt != null) TextDecoration.LineThrough else null
                         )
                         if (project.description.isNotBlank()) Text(project.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("$done de ${tasks.size} concluídas · ${(progress * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(textResources.getString(R.string.text_de_concluidas_194 , done, tasks.size, (progress * 100).toInt()), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (tasks.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                     }
                 }
@@ -279,10 +282,10 @@ fun ProjectDetailScreen(
                         }
                     }
                 }
-                item { TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) "+ Adicionar tags" else "Editar tags") } }
-                item { Text("Tarefas", style = MaterialTheme.typography.titleMedium) }
+                item { TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) textResources.getString(R.string.text_adicionar_tags) else textResources.getString(R.string.text_editar_tags)) } }
+                item { Text(textResources.getString(R.string.text_tarefas), style = MaterialTheme.typography.titleMedium) }
                 if (tasks.isEmpty()) {
-                    item { Text("Nenhuma tarefa ainda. Toque em Editar para adicionar.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Text(textResources.getString(R.string.text_nenhuma_tarefa_ainda_toque_em_editar_para_adicionar), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 } else {
                     itemsIndexed(tasks, key = { _, task -> task.id }) { _, task ->
                         ActionCard {
@@ -290,7 +293,7 @@ fun ProjectDetailScreen(
                                 IconButton(onClick = { viewModel.toggleOccurrence(task, LocalDate.now()) }) {
                                     Icon(
                                         if (task.status == ActionStatus.COMPLETED.name) ActionBoxIcons.Check else ActionBoxIcons.EmptyCheck,
-                                        contentDescription = if (task.status == ActionStatus.COMPLETED.name) "Reabrir tarefa" else "Concluir tarefa"
+                                        contentDescription = if (task.status == ActionStatus.COMPLETED.name) textResources.getString(R.string.text_reabrir_tarefa) else textResources.getString(R.string.text_concluir_tarefa)
                                     )
                                 }
                                 Text(
@@ -315,15 +318,15 @@ fun ProjectDetailScreen(
                 }
                 item {
                     when {
-                        tasks.isNotEmpty() && done == tasks.size && project.completedAt == null -> ActionButton("Finalizar projeto", onClick = { viewModel.finishProject(project.id) })
-                        project.completedAt != null -> ActionButton("Reabrir projeto", onClick = { viewModel.reopenProject(project.id) }, primary = false)
+                        tasks.isNotEmpty() && done == tasks.size && project.completedAt == null -> ActionButton(textResources.getString(R.string.text_finalizar_projeto), onClick = { viewModel.finishProject(project.id) })
+                        project.completedAt != null -> ActionButton(textResources.getString(R.string.text_reabrir_projeto), onClick = { viewModel.reopenProject(project.id) }, primary = false)
                     }
                 }
                 item {
                     HorizontalDivider()
                     TextButton(onClick = { showDeleteDialog = true }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Text("Mover projeto para a lixeira", color = MaterialTheme.colorScheme.error)
+                        Text(textResources.getString(R.string.text_mover_projeto_para_a_lixeira), color = MaterialTheme.colorScheme.error)
                     }
                     Spacer(Modifier.height(28.dp))
                 }
@@ -350,26 +353,26 @@ fun ProjectDetailScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text("Descartar alterações?") },
-            text = { Text("As alterações feitas no título, descrição, tarefas e ordem não serão salvas.") },
+            title = { Text(textResources.getString(R.string.text_descartar_alteracoes)) },
+            text = { Text(textResources.getString(R.string.text_as_alteracoes_feitas_no_titulo_descricao_tarefas_e_ordem_nao_sera)) },
             confirmButton = {
-                TextButton(onClick = { showDiscardDialog = false; leaveEditing() }) { Text("Descartar") }
+                TextButton(onClick = { showDiscardDialog = false; leaveEditing() }) { Text(textResources.getString(R.string.text_descartar)) }
             },
-            dismissButton = { TextButton(onClick = { showDiscardDialog = false }) { Text("Continuar editando") } }
+            dismissButton = { TextButton(onClick = { showDiscardDialog = false }) { Text(textResources.getString(R.string.text_continuar_editando)) } }
         )
     }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Mover projeto para a lixeira?") },
-            text = { Text("O projeto e suas tarefas poderão ser restaurados durante 30 dias.") },
+            title = { Text(textResources.getString(R.string.text_mover_projeto_para_a_lixeira_203)) },
+            text = { Text(textResources.getString(R.string.text_o_projeto_e_suas_tarefas_poderao_ser_restaurados_durante_30_dias)) },
             confirmButton = {
                 TextButton(onClick = { showDeleteDialog = false; viewModel.deleteProject(project.id); onBack() }) {
-                    Text("Mover", color = MaterialTheme.colorScheme.error)
+                    Text(textResources.getString(R.string.text_mover), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text(textResources.getString(R.string.text_cancelar)) } }
         )
     }
 }

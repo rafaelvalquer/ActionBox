@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.components
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -26,12 +27,14 @@ fun ReorderHandle(
     modifier: Modifier = Modifier,
     threshold: Dp = 44.dp
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val thresholdPx = with(LocalDensity.current) { threshold.toPx() }
     var accumulated by remember(index) { mutableFloatStateOf(0f) }
 
     Icon(
         imageVector = Icons.Rounded.DragHandle,
-        contentDescription = "Arrastar para reordenar",
+        contentDescription = textResources.getString(R.string.text_arrastar_para_reordenar),
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .size(32.dp)

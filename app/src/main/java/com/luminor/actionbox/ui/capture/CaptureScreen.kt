@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.capture
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +18,16 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun CaptureScreen(viewModel: CaptureViewModel) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     Box(Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 860.dp).statusBarsPadding().padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Criar", style = MaterialTheme.typography.headlineLarge)
+            Text(textResources.getString(R.string.text_criar), style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Transforme uma frase em uma ação sem preencher um formulário enorme.",
+                textResources.getString(R.string.text_transforme_uma_frase_em_uma_acao_sem_preencher_um_formulario_enor),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

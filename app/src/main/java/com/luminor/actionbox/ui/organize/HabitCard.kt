@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize
 
+import com.luminor.actionbox.R
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
@@ -29,7 +30,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.HabitStreakCalculator
 import com.luminor.actionbox.ui.designsystem.ActionBoxColors
@@ -45,21 +45,25 @@ import java.util.Locale
 @Composable
 fun HabitRichCard(
     action: ActionEntity,
-    viewModel: ActionViewModel,
+    occursOn: (ActionEntity, LocalDate) -> Boolean,
+    completedOn: (ActionEntity, LocalDate) -> Boolean,
+    onToggle: (ActionEntity, LocalDate) -> Unit,
+    hapticsEnabled: Boolean,
     onOpen: (() -> Unit)? = null
 ) {
-    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val today = LocalDate.now()
     val month = YearMonth.from(today)
     val occurrences = (1..month.lengthOfMonth())
         .map { month.atDay(it) }
-        .filter { viewModel.routineOccursOn(action, it) && !it.isAfter(today) }
-    val completed = occurrences.count { viewModel.isCompletedOn(action, it) }
+        .filter { occursOn(action, it) && !it.isAfter(today) }
+    val completed = occurrences.count { completedOn(action, it) }
     val progress = if (occurrences.isEmpty()) 0f else completed.toFloat() / occurrences.size
     val streak = HabitStreakCalculator.currentStreak(
         today = today,
-        occursOn = { viewModel.routineOccursOn(action, it) },
-        isCompleted = { viewModel.isCompletedOn(action, it) }
+        occursOn = { occursOn(action, it) },
+        isCompleted = { completedOn(action, it) }
     )
     val streakScale = remember { Animatable(1f) }
     var previousStreak by remember(action.id) { mutableIntStateOf(streak) }
@@ -78,7 +82,7 @@ fun HabitRichCard(
                 Column(Modifier.weight(1f)) {
                     Text("🏋️ ${action.title}", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        if (action.status == "CANCELLED") "Rotina pausada" else "$completed dias este mês",
+                        if (action.status == "CANCELLED") textResources.getString(R.string.text_rotina_pausada) else textResources.getString(R.string.text_dias_este_mes , completed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (action.status == "CANCELLED") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -94,8 +98,10 @@ fun HabitRichCard(
                 action = action,
                 month = month,
                 today = today,
-                viewModel = viewModel,
-                hapticsEnabled = settings.hapticsEnabled
+                occursOn = occursOn,
+                completedOn = completedOn,
+                onToggle = onToggle,
+                hapticsEnabled = hapticsEnabled
             )
             Row(
                 modifier = Modifier.graphicsLayer { scaleX = streakScale.value; scaleY = streakScale.value },
@@ -103,7 +109,7 @@ fun HabitRichCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(ActionBoxIcons.Fire, contentDescription = null, tint = ActionBoxColors.Reminder)
-                Text("Sequência: $streak", style = MaterialTheme.typography.labelLarge)
+                Text(textResources.getString(R.string.text_sequencia , streak), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -114,7 +120,9 @@ private fun HabitMonthGrid(
     action: ActionEntity,
     month: YearMonth,
     today: LocalDate,
-    viewModel: ActionViewModel,
+    occursOn: (ActionEntity, LocalDate) -> Boolean,
+    completedOn: (ActionEntity, LocalDate) -> Boolean,
+    onToggle: (ActionEntity, LocalDate) -> Unit,
     hapticsEnabled: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
@@ -136,8 +144,8 @@ private fun HabitMonthGrid(
                 if (date == null) {
                     Spacer(Modifier.weight(1f).height(48.dp))
                 } else {
-                    val occurs = viewModel.routineOccursOn(action, date)
-                    val done = occurs && viewModel.isCompletedOn(action, date)
+                    val occurs = occursOn(action, date)
+                    val done = occurs && completedOn(action, date)
                     val future = date.isAfter(today)
                     val enabled = occurs && !future
                     val cellModifier = Modifier
@@ -149,7 +157,7 @@ private fun HabitMonthGrid(
                                     .pressScale(0.9f)
                                     .clickable {
                                         if (hapticsEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        viewModel.toggleOccurrence(action, date)
+                                        onToggle(action, date)
                                     }
                             } else Modifier
                         )

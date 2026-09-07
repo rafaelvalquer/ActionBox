@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.search
 
+import com.luminor.actionbox.R
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,8 +22,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 
 @OptIn(FlowPreview::class)
-class GlobalSearchViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = (application as ActionBoxApplication).repository
+@dagger.hilt.android.lifecycle.HiltViewModel
+class GlobalSearchViewModel @javax.inject.Inject constructor(
+    private val textResources: com.luminor.actionbox.ui.events.TextResources,
+    private val repository: com.luminor.actionbox.data.repository.ActionRepository,
+    private val uiEventBus: com.luminor.actionbox.ui.events.AppUiEventBus
+) : androidx.lifecycle.ViewModel() {
 
     val query = MutableStateFlow("")
     val filter = MutableStateFlow(SearchFilter.ALL)
@@ -83,7 +88,7 @@ class GlobalSearchViewModel(application: Application) : AndroidViewModel(applica
                 results += SearchResultItem(
                     kind = kind,
                     id = action.id,
-                    title = action.title.ifBlank { "Sem título" },
+                    title = action.title.ifBlank { textResources.getString(R.string.text_sem_titulo) },
                     subtitle = subtitleFor(action, tagText),
                     score = score,
                     updatedAt = action.updatedAt ?: action.createdAt
@@ -148,11 +153,11 @@ class GlobalSearchViewModel(application: Application) : AndroidViewModel(applica
 
     private fun subtitleFor(action: ActionEntity, tags: String): String {
         val base = when (action.type) {
-            ActionType.NOTE.name -> action.noteCategory ?: "Nota"
-            ActionType.READ_LATER.name -> action.sourceUrl ?: "Salvo para depois"
-            ActionType.REMINDER.name -> "Lembrete"
-            ActionType.EVENT.name -> "Compromisso"
-            else -> action.description ?: "Tarefa"
+            ActionType.NOTE.name -> action.noteCategory ?: textResources.getString(R.string.text_nota)
+            ActionType.READ_LATER.name -> action.sourceUrl ?: textResources.getString(R.string.text_salvo_para_depois)
+            ActionType.REMINDER.name -> textResources.getString(R.string.text_lembrete)
+            ActionType.EVENT.name -> textResources.getString(R.string.text_compromisso)
+            else -> action.description ?: textResources.getString(R.string.text_tarefa)
         }
         return listOf(base, tags.prependTags()).filter { it.isNotBlank() }.joinToString(" · ")
     }
@@ -168,13 +173,13 @@ private data class SearchContent(
     val lists: List<ActionListEntity>
 )
 
-enum class SearchFilter(val label: String) {
-    ALL("Tudo"),
-    TASKS("Tarefas"),
-    PROJECTS("Projetos"),
-    NOTES("Notas"),
-    LISTS("Listas"),
-    SAVED("Depois");
+enum class SearchFilter(val label: Int) {
+    ALL(R.string.text_tudo),
+    TASKS(R.string.text_tarefas),
+    PROJECTS(R.string.text_projetos),
+    NOTES(R.string.text_notas),
+    LISTS(R.string.text_listas),
+    SAVED(R.string.text_depois);
 
     fun accepts(kind: SearchResultKind): Boolean = when (this) {
         ALL -> true
@@ -186,12 +191,12 @@ enum class SearchFilter(val label: String) {
     }
 }
 
-enum class SearchResultKind(val label: String, val emoji: String) {
-    ACTION("Tarefa", "✓"),
-    PROJECT("Projeto", "📁"),
-    NOTE("Nota", "📝"),
-    LIST("Lista", "☑️"),
-    SAVED("Depois", "🔖")
+enum class SearchResultKind(val label: Int, val emoji: String) {
+    ACTION(R.string.text_tarefa, "✓"),
+    PROJECT(R.string.text_projeto, "📁"),
+    NOTE(R.string.text_nota, "📝"),
+    LIST(R.string.text_lista, "☑️"),
+    SAVED(R.string.text_depois, "🔖")
 }
 
 data class SearchResultItem(

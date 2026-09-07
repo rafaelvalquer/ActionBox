@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.actions.ActionEditorViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
@@ -46,7 +47,9 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun ActionDetailScreen(viewModel: ActionViewModel, action: ActionEntity, onBack: () -> Unit) {
+fun ActionDetailScreen(viewModel: ActionEditorViewModel, action: ActionEntity, onBack: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -66,8 +69,8 @@ fun ActionDetailScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
-                Text("Detalhes", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
+                Text(textResources.getString(R.string.text_detalhes), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
             }
 
             Surface(shape = MaterialTheme.shapes.extraLarge, color = color.copy(alpha = 0.12f)) {
@@ -88,16 +91,16 @@ fun ActionDetailScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
 
             ActionCard {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    if (date != null) DetailLine("Quando", date.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM · HH:mm", Locale.forLanguageTag("pt-BR"))).replaceFirstChar { it.uppercase() })
-                    if (RecurrenceCalculator.recurrenceType(action).name != "NONE") DetailLine("Repetição", recurrenceLabel(action))
-                    action.reminderMinutes?.let { DetailLine("Aviso", if (it == 0) "Na hora" else "$it min antes") }
-                    action.priority?.let { DetailLine("Prioridade", it.lowercase().replaceFirstChar { ch -> ch.uppercase() }) }
-                    if (action.content.isNotBlank() && action.content != action.title) DetailLine("Conteúdo", action.content)
+                    if (date != null) DetailLine(textResources.getString(R.string.text_quando), date.format(DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM · HH:mm", Locale.forLanguageTag("pt-BR"))).replaceFirstChar { it.uppercase() })
+                    if (RecurrenceCalculator.recurrenceType(action).name != "NONE") DetailLine(textResources.getString(R.string.text_repeticao), recurrenceLabel(action))
+                    action.reminderMinutes?.let { DetailLine(textResources.getString(R.string.text_aviso), if (it == 0) textResources.getString(R.string.text_na_hora) else textResources.getString(R.string.text_min_antes , it)) }
+                    action.priority?.let { DetailLine(textResources.getString(R.string.text_prioridade), it.lowercase().replaceFirstChar { ch -> ch.uppercase() }) }
+                    if (action.content.isNotBlank() && action.content != action.title) DetailLine(textResources.getString(R.string.text_conteudo), action.content)
                 }
             }
 
             ActionButton(
-                text = if (completed) "Marcar como pendente" else "Concluir ação",
+                text = if (completed) textResources.getString(R.string.text_marcar_como_pendente) else textResources.getString(R.string.text_concluir_acao),
                 onClick = {
                     if (settings.hapticsEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     viewModel.toggleOccurrence(action, LocalDate.now())
@@ -105,12 +108,12 @@ fun ActionDetailScreen(viewModel: ActionViewModel, action: ActionEntity, onBack:
             )
 
             if (action.type == ActionType.EVENT.name) {
-                ActionButton("Adicionar ao calendário do celular", onClick = { viewModel.addToSystemCalendar(context, action) }, primary = false)
+                ActionButton(textResources.getString(R.string.text_adicionar_ao_calendario_do_celular), onClick = { viewModel.addToSystemCalendar(context, action) }, primary = false)
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                androidx.compose.material3.OutlinedButton(onClick = { viewModel.archive(action.id); onBack() }, modifier = Modifier.weight(1f)) { Text("Arquivar") }
-                androidx.compose.material3.OutlinedButton(onClick = { viewModel.delete(action.id); onBack() }, modifier = Modifier.weight(1f)) { Text("Excluir") }
+                androidx.compose.material3.OutlinedButton(onClick = { viewModel.archive(action.id); onBack() }, modifier = Modifier.weight(1f)) { Text(textResources.getString(R.string.text_arquivar)) }
+                androidx.compose.material3.OutlinedButton(onClick = { viewModel.delete(action.id); onBack() }, modifier = Modifier.weight(1f)) { Text(textResources.getString(R.string.text_excluir)) }
             }
             Spacer(Modifier.padding(bottom = 14.dp))
         }
@@ -125,19 +128,21 @@ private fun DetailLine(label: String, value: String) {
     }
 }
 
+@Composable
 private fun actionTypeLabel(type: String) = when (type) {
-    ActionType.REMINDER.name -> "Lembrete"
-    ActionType.EVENT.name -> "Compromisso"
-    ActionType.NOTE.name -> "Nota"
-    ActionType.LIST.name -> "Lista"
-    ActionType.PROJECT.name -> "Projeto"
-    ActionType.READ_LATER.name -> "Depois"
-    else -> "Tarefa"
+    ActionType.REMINDER.name -> androidx.compose.ui.res.stringResource(R.string.text_lembrete)
+    ActionType.EVENT.name -> androidx.compose.ui.res.stringResource(R.string.text_compromisso)
+    ActionType.NOTE.name -> androidx.compose.ui.res.stringResource(R.string.text_nota)
+    ActionType.LIST.name -> androidx.compose.ui.res.stringResource(R.string.text_lista)
+    ActionType.PROJECT.name -> androidx.compose.ui.res.stringResource(R.string.text_projeto)
+    ActionType.READ_LATER.name -> androidx.compose.ui.res.stringResource(R.string.text_depois)
+    else -> androidx.compose.ui.res.stringResource(R.string.text_tarefa)
 }
 
+@Composable
 private fun recurrenceLabel(action: ActionEntity): String = when (RecurrenceCalculator.recurrenceType(action).name) {
-    "DAILY" -> "Todo dia"
-    "WEEKLY" -> "Semanal"
-    "MONTHLY" -> "Mensal"
-    else -> "Não repetir"
+    "DAILY" -> androidx.compose.ui.res.stringResource(R.string.text_todo_dia)
+    "WEEKLY" -> androidx.compose.ui.res.stringResource(R.string.text_semanal)
+    "MONTHLY" -> androidx.compose.ui.res.stringResource(R.string.text_mensal)
+    else -> androidx.compose.ui.res.stringResource(R.string.text_nao_repetir)
 }

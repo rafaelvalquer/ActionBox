@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.capture
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,43 +38,45 @@ private enum class EditorSheet { TYPE, DATE, TIME, REMINDER, RECURRENCE, PRIORIT
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaptureEditor(viewModel: CaptureViewModel, action: DetectedAction) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var sheet by remember { mutableStateOf<EditorSheet?>(null) }
     val dateLabel = action.scheduledAt?.toLocalDate()?.let {
         when (it) {
-            LocalDate.now() -> "Hoje"
-            LocalDate.now().plusDays(1) -> "Amanhã"
+            LocalDate.now() -> textResources.getString(R.string.text_hoje)
+            LocalDate.now().plusDays(1) -> textResources.getString(R.string.text_amanha)
             else -> it.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         }
-    } ?: "Sem data"
-    val timeLabel = action.scheduledAt?.toLocalTime()?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "Sem hora"
+    } ?: textResources.getString(R.string.text_sem_data)
+    val timeLabel = action.scheduledAt?.toLocalTime()?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: textResources.getString(R.string.text_sem_hora)
     val recurrenceLabel = when (action.recurrenceType) {
-        RecurrenceType.NONE -> "Não repetir"
-        RecurrenceType.DAILY -> "Todo dia"
-        RecurrenceType.WEEKLY -> "Semanal"
-        RecurrenceType.MONTHLY -> "Mensal"
+        RecurrenceType.NONE -> textResources.getString(R.string.text_nao_repetir)
+        RecurrenceType.DAILY -> textResources.getString(R.string.text_todo_dia)
+        RecurrenceType.WEEKLY -> textResources.getString(R.string.text_semanal)
+        RecurrenceType.MONTHLY -> textResources.getString(R.string.text_mensal)
     }
     val reminderLabel = when (action.reminderMinutes) {
-        null -> "Sem aviso"
-        0 -> "Na hora"
-        10 -> "10 min antes"
-        30 -> "30 min antes"
-        60 -> "1 hora antes"
-        else -> "${action.reminderMinutes} min antes"
+        null -> textResources.getString(R.string.text_sem_aviso)
+        0 -> textResources.getString(R.string.text_na_hora)
+        10 -> textResources.getString(R.string.text_10_min_antes)
+        30 -> textResources.getString(R.string.text_30_min_antes)
+        60 -> textResources.getString(R.string.text_1_hora_antes)
+        else -> textResources.getString(R.string.text_min_antes , action.reminderMinutes)
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        DetailRow("Tipo", action.type.label) { sheet = EditorSheet.TYPE }
+        DetailRow(textResources.getString(R.string.text_tipo), action.type.label) { sheet = EditorSheet.TYPE }
         if (action.type in listOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT, ActionType.LIST)) {
-            DetailRow("Data", dateLabel) { sheet = EditorSheet.DATE }
-            DetailRow("Hora", timeLabel) { sheet = EditorSheet.TIME }
-            DetailRow("Aviso", reminderLabel) { sheet = EditorSheet.REMINDER }
-            DetailRow("Repetir", recurrenceLabel) { sheet = EditorSheet.RECURRENCE }
+            DetailRow(textResources.getString(R.string.text_data), dateLabel) { sheet = EditorSheet.DATE }
+            DetailRow(textResources.getString(R.string.text_hora), timeLabel) { sheet = EditorSheet.TIME }
+            DetailRow(textResources.getString(R.string.text_aviso), reminderLabel) { sheet = EditorSheet.REMINDER }
+            DetailRow(textResources.getString(R.string.text_repetir), recurrenceLabel) { sheet = EditorSheet.RECURRENCE }
         }
         if (action.type == ActionType.TASK || action.type == ActionType.PROJECT) {
-            DetailRow("Prioridade", priorityLabel(action.priority)) { sheet = EditorSheet.PRIORITY }
+            DetailRow(textResources.getString(R.string.text_prioridade), priorityLabel(action.priority)) { sheet = EditorSheet.PRIORITY }
         }
         if (action.type == ActionType.LIST || action.type == ActionType.PROJECT) {
-            DetailRow("Itens", "${action.items.size}") { sheet = EditorSheet.ITEMS }
+            DetailRow(textResources.getString(R.string.text_itens), "${action.items.size}") { sheet = EditorSheet.ITEMS }
         }
     }
 
@@ -90,7 +93,7 @@ fun CaptureEditor(viewModel: CaptureViewModel, action: DetectedAction) {
                     EditorSheet.ITEMS -> ItemsEditor(viewModel, action)
                     null -> Unit
                 }
-                ActionButton("Concluir", onClick = { sheet = null })
+                ActionButton(textResources.getString(R.string.text_concluir), onClick = { sheet = null })
                 androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 10.dp))
             }
         }
@@ -110,7 +113,9 @@ private fun DetailRow(label: String, value: String, onClick: () -> Unit) {
 
 @Composable
 private fun TypeEditor(viewModel: CaptureViewModel, action: DetectedAction) {
-    Text("Tipo de ação", style = MaterialTheme.typography.titleLarge)
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
+    Text(textResources.getString(R.string.text_tipo_de_acao), style = MaterialTheme.typography.titleLarge)
     val types = listOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT, ActionType.NOTE, ActionType.LIST, ActionType.PROJECT)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(types) { type -> ActionChip(type.label, action.type == type) { viewModel.chooseType(type) } }
@@ -119,12 +124,14 @@ private fun TypeEditor(viewModel: CaptureViewModel, action: DetectedAction) {
 
 @Composable
 private fun DateEditor(viewModel: CaptureViewModel, action: DetectedAction) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var custom by remember(action.scheduledAt?.toLocalDate()) { mutableStateOf(action.scheduledAt?.toLocalDate()?.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")).orEmpty()) }
-    Text("Data", style = MaterialTheme.typography.titleLarge)
+    Text(textResources.getString(R.string.text_data), style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        item { ActionChip("Hoje", action.scheduledAt?.toLocalDate() == LocalDate.now()) { viewModel.setDetectedDate(LocalDate.now()) } }
-        item { ActionChip("Amanhã", action.scheduledAt?.toLocalDate() == LocalDate.now().plusDays(1)) { viewModel.setDetectedDate(LocalDate.now().plusDays(1)) } }
-        item { ActionChip("Sem data", action.scheduledAt == null) { viewModel.setDetectedDate(null) } }
+        item { ActionChip(textResources.getString(R.string.text_hoje), action.scheduledAt?.toLocalDate() == LocalDate.now()) { viewModel.setDetectedDate(LocalDate.now()) } }
+        item { ActionChip(textResources.getString(R.string.text_amanha), action.scheduledAt?.toLocalDate() == LocalDate.now().plusDays(1)) { viewModel.setDetectedDate(LocalDate.now().plusDays(1)) } }
+        item { ActionChip(textResources.getString(R.string.text_sem_data), action.scheduledAt == null) { viewModel.setDetectedDate(null) } }
     }
     OutlinedTextField(
         value = custom,
@@ -138,8 +145,10 @@ private fun DateEditor(viewModel: CaptureViewModel, action: DetectedAction) {
 
 @Composable
 private fun TimeEditor(viewModel: CaptureViewModel, action: DetectedAction) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var custom by remember(action.scheduledAt?.toLocalTime()) { mutableStateOf(action.scheduledAt?.toLocalTime()?.format(DateTimeFormatter.ofPattern("HH:mm")).orEmpty()) }
-    Text("Hora", style = MaterialTheme.typography.titleLarge)
+    Text(textResources.getString(R.string.text_hora), style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("07:00", "09:00", "14:00", "19:00").forEach { value ->
             item { ActionChip(value, custom == value) { custom = value; viewModel.setDetectedTimeText(value) } }
@@ -157,22 +166,26 @@ private fun TimeEditor(viewModel: CaptureViewModel, action: DetectedAction) {
 
 @Composable
 private fun ReminderEditor(viewModel: CaptureViewModel, action: DetectedAction) {
-    Text("Aviso", style = MaterialTheme.typography.titleLarge)
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
+    Text(textResources.getString(R.string.text_aviso), style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val values = listOf(null to "Sem aviso", 0 to "Na hora", 10 to "10 min", 30 to "30 min", 60 to "1 hora")
+        val values = listOf(null to textResources.getString(R.string.text_sem_aviso), 0 to textResources.getString(R.string.text_na_hora), 10 to textResources.getString(R.string.text_10_min), 30 to textResources.getString(R.string.text_30_min), 60 to textResources.getString(R.string.text_1_hora))
         items(values) { (value, label) -> ActionChip(label, action.reminderMinutes == value) { viewModel.setReminderMinutes(value) } }
     }
 }
 
 @Composable
 private fun RecurrenceEditor(viewModel: CaptureViewModel, action: DetectedAction) {
-    Text("Repetir", style = MaterialTheme.typography.titleLarge)
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
+    Text(textResources.getString(R.string.text_repetir), style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val values = listOf(RecurrenceType.NONE to "Não", RecurrenceType.DAILY to "Todo dia", RecurrenceType.WEEKLY to "Semanal", RecurrenceType.MONTHLY to "Mensal")
+        val values = listOf(RecurrenceType.NONE to textResources.getString(R.string.text_nao), RecurrenceType.DAILY to textResources.getString(R.string.text_todo_dia), RecurrenceType.WEEKLY to textResources.getString(R.string.text_semanal), RecurrenceType.MONTHLY to textResources.getString(R.string.text_mensal))
         items(values) { (value, label) -> ActionChip(label, action.recurrenceType == value) { viewModel.setRecurrence(value) } }
     }
     if (action.recurrenceType == RecurrenceType.WEEKLY) {
-        Text("Dias da semana", style = MaterialTheme.typography.labelLarge)
+        Text(textResources.getString(R.string.text_dias_da_semana), style = MaterialTheme.typography.labelLarge)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             val days = listOf(1 to "S", 2 to "T", 3 to "Q", 4 to "Q", 5 to "S", 6 to "S", 7 to "D")
             items(days) { (day, label) -> ActionChip(label, day in action.recurrenceDays) { viewModel.toggleRecurrenceDay(day) } }
@@ -182,7 +195,9 @@ private fun RecurrenceEditor(viewModel: CaptureViewModel, action: DetectedAction
 
 @Composable
 private fun PriorityEditor(viewModel: CaptureViewModel, action: DetectedAction) {
-    Text("Prioridade", style = MaterialTheme.typography.titleLarge)
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
+    Text(textResources.getString(R.string.text_prioridade), style = MaterialTheme.typography.titleLarge)
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(ActionPriority.entries) { priority -> ActionChip(priorityLabel(priority), action.priority == priority) { viewModel.setPriority(priority) } }
     }
@@ -190,12 +205,14 @@ private fun PriorityEditor(viewModel: CaptureViewModel, action: DetectedAction) 
 
 @Composable
 private fun ItemsEditor(viewModel: CaptureViewModel, action: DetectedAction) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var newItem by remember { mutableStateOf("") }
-    Text("Itens", style = MaterialTheme.typography.titleLarge)
+    Text(textResources.getString(R.string.text_itens), style = MaterialTheme.typography.titleLarge)
     action.items.forEachIndexed { index, item ->
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("• $item", modifier = Modifier.weight(1f))
-            TextButton(onClick = { viewModel.removeDetectedItem(index) }) { Text("Remover") }
+            TextButton(onClick = { viewModel.removeDetectedItem(index) }) { Text(textResources.getString(R.string.text_remover)) }
         }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -203,16 +220,17 @@ private fun ItemsEditor(viewModel: CaptureViewModel, action: DetectedAction) {
             value = newItem,
             onValueChange = { newItem = it },
             modifier = Modifier.weight(1f),
-            label = { Text("Novo item") },
+            label = { Text(textResources.getString(R.string.text_novo_item)) },
             singleLine = true,
             shape = MaterialTheme.shapes.medium
         )
-        TextButton(onClick = { viewModel.addDetectedItem(newItem); newItem = "" }) { Text("Adicionar") }
+        TextButton(onClick = { viewModel.addDetectedItem(newItem); newItem = "" }) { Text(textResources.getString(R.string.text_adicionar)) }
     }
 }
 
+@Composable
 private fun priorityLabel(priority: ActionPriority) = when (priority) {
-    ActionPriority.LOW -> "Baixa"
-    ActionPriority.NORMAL -> "Normal"
-    ActionPriority.HIGH -> "Alta"
+    ActionPriority.LOW -> androidx.compose.ui.res.stringResource(R.string.text_baixa)
+    ActionPriority.NORMAL -> androidx.compose.ui.res.stringResource(R.string.text_normal)
+    ActionPriority.HIGH -> androidx.compose.ui.res.stringResource(R.string.text_alta)
 }

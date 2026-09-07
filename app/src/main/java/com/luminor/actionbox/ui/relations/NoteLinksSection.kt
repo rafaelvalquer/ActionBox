@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.relations
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,8 @@ fun NoteLinksSection(
     onLink: (targetType: String, targetId: Long) -> Unit,
     onUnlink: (linkId: Long) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var projectPicker by remember { mutableStateOf(false) }
     var taskPicker by remember { mutableStateOf(false) }
     val noteLinks = links.filter { it.sourceType == OrganizationOwnerType.NOTE && it.sourceId == noteId }
@@ -50,8 +53,8 @@ fun NoteLinksSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Vinculado a", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = { projectPicker = true }, enabled = availableProjects.isNotEmpty()) { Text("+ Projeto") }
+            Text(textResources.getString(R.string.text_vinculado_a), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = { projectPicker = true }, enabled = availableProjects.isNotEmpty()) { Text(textResources.getString(R.string.text_projeto_206)) }
             DropdownMenu(expanded = projectPicker, onDismissRequest = { projectPicker = false }) {
                 availableProjects.take(30).forEach { project ->
                     DropdownMenuItem(
@@ -60,7 +63,7 @@ fun NoteLinksSection(
                     )
                 }
             }
-            TextButton(onClick = { taskPicker = true }, enabled = availableTasks.isNotEmpty()) { Text("+ Tarefa") }
+            TextButton(onClick = { taskPicker = true }, enabled = availableTasks.isNotEmpty()) { Text(textResources.getString(R.string.text_tarefa_207)) }
             DropdownMenu(expanded = taskPicker, onDismissRequest = { taskPicker = false }) {
                 availableTasks.take(30).forEach { task ->
                     DropdownMenuItem(
@@ -72,7 +75,7 @@ fun NoteLinksSection(
         }
 
         if (noteLinks.isEmpty()) {
-            Text("Nenhum projeto ou tarefa vinculado.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(textResources.getString(R.string.text_nenhum_projeto_ou_tarefa_vinculado), color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             noteLinks.forEach { link ->
                 val label = when (link.targetType) {
@@ -83,7 +86,7 @@ fun NoteLinksSection(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(label, modifier = Modifier.weight(1f))
                     IconButton(onClick = { onUnlink(link.id) }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Desvincular")
+                        Icon(Icons.Rounded.Close, contentDescription = textResources.getString(R.string.text_desvincular))
                     }
                 }
             }

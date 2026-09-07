@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,8 @@ import com.luminor.actionbox.ui.motion.actionSharedBounds
 
 @Composable
 fun ProjectRichCard(project: ProjectEntity, tasks: List<ActionEntity>, onOpen: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val done = tasks.count { it.status == ActionStatus.COMPLETED.name }
     val progress = if (tasks.isEmpty()) 0f else done.toFloat() / tasks.size
     val next = tasks.firstOrNull { it.status != ActionStatus.COMPLETED.name }
@@ -42,19 +45,19 @@ fun ProjectRichCard(project: ProjectEntity, tasks: List<ActionEntity>, onOpen: (
                 }
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                     Text(project.title, style = MaterialTheme.typography.titleLarge, textDecoration = if (project.completedAt != null) TextDecoration.LineThrough else null)
-                    Text(if (project.completedAt != null) "Projeto finalizado" else "$done de ${tasks.size} concluídas", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (project.completedAt != null) textResources.getString(R.string.text_projeto_finalizado) else textResources.getString(R.string.text_de_concluidas , done, tasks.size), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("${(progress * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = ActionBoxColors.Project)
             }
             if (tasks.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
             if (next != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Próxima", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_proxima), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text("○  ${next.title}", style = MaterialTheme.typography.bodyMedium)
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                Text("Abrir", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(textResources.getString(R.string.text_abrir), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Icon(ActionBoxIcons.Arrow, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
             }
         }

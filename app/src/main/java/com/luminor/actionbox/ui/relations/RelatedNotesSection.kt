@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.relations
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +38,8 @@ fun RelatedNotesSection(
     onUnlink: (Long) -> Unit,
     onOpenNote: (Long) -> Unit = {}
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var pickerOpen by remember { mutableStateOf(false) }
     val ownerLinks = links.filter {
         it.sourceType == OrganizationOwnerType.NOTE &&
@@ -49,15 +52,15 @@ fun RelatedNotesSection(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Notas relacionadas", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = { pickerOpen = true }, enabled = available.isNotEmpty()) { Text("+ Vincular") }
+            Text(textResources.getString(R.string.text_notas_relacionadas), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = { pickerOpen = true }, enabled = available.isNotEmpty()) { Text(textResources.getString(R.string.text_vincular)) }
             DropdownMenu(expanded = pickerOpen, onDismissRequest = { pickerOpen = false }) {
                 if (available.isEmpty()) {
-                    DropdownMenuItem(text = { Text("Nenhuma nota disponível") }, onClick = { pickerOpen = false })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_nenhuma_nota_disponivel)) }, onClick = { pickerOpen = false })
                 } else {
                     available.take(30).forEach { note ->
                         DropdownMenuItem(
-                            text = { Text(note.title.ifBlank { "Sem título" }) },
+                            text = { Text(note.title.ifBlank { textResources.getString(R.string.text_sem_titulo) }) },
                             onClick = { onLink(note.id); pickerOpen = false }
                         )
                     }
@@ -65,7 +68,7 @@ fun RelatedNotesSection(
             }
         }
         if (linkedNotes.isEmpty()) {
-            Text("Nenhuma nota vinculada.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(textResources.getString(R.string.text_nenhuma_nota_vinculada), color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             linkedNotes.forEach { note ->
                 val link = ownerLinks.firstOrNull { it.sourceId == note.id }
@@ -76,12 +79,12 @@ fun RelatedNotesSection(
                     ) {
                         Text("📝", modifier = Modifier.padding(end = 10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(note.title.ifBlank { "Sem título" }, style = MaterialTheme.typography.bodyLarge)
+                            Text(note.title.ifBlank { textResources.getString(R.string.text_sem_titulo) }, style = MaterialTheme.typography.bodyLarge)
                             if (note.noteCategory != null) Text(note.noteCategory, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (link != null) {
                             IconButton(onClick = { onUnlink(link.id) }) {
-                                Icon(Icons.Rounded.Close, contentDescription = "Desvincular nota")
+                                Icon(Icons.Rounded.Close, contentDescription = textResources.getString(R.string.text_desvincular_nota))
                             }
                         }
                     }

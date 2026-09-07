@@ -1,5 +1,6 @@
 package com.luminor.actionbox.notification
 
+import com.luminor.actionbox.R
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,14 +13,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+@dagger.hilt.android.AndroidEntryPoint
 class ReminderActionReceiver : BroadcastReceiver() {
+    @javax.inject.Inject lateinit var repository: com.luminor.actionbox.data.repository.ActionRepository
+    @javax.inject.Inject lateinit var scheduler: ReminderScheduler
+    @javax.inject.Inject lateinit var scheduleReminder: com.luminor.actionbox.domain.reminder.ScheduleReminderUseCase
+    @javax.inject.Inject lateinit var dao: com.luminor.actionbox.data.local.ActionDao
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getLongExtra(EXTRA_ID, -1L)
         if (id < 0) return
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val dao = ActionBoxDatabase.getInstance(context).actionDao()
                 val action = dao.getById(id)
                 when (intent.action) {
                     ACTION_COMPLETE -> {
@@ -27,13 +32,13 @@ class ReminderActionReceiver : BroadcastReceiver() {
                             dao.insertCompletion(ActionCompletionEntity(actionId = id, occurrenceDate = LocalDate.now().toString()))
                         } else {
                             dao.complete(id)
-                            ReminderScheduler(context).cancel(id)
+                            scheduler.cancel(id)
                         }
                     }
                     ACTION_SNOOZE -> {
                         val newTime = System.currentTimeMillis() + 10 * 60 * 1000
                         if (action == null || RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) dao.reschedule(id, newTime)
-                        ReminderScheduler(context).schedule(id, action?.title ?: "Lembrete", newTime)
+                        scheduler.schedule(id, action?.title ?: context.getString(R.string.text_lembrete), newTime)
                     }
                 }
                 context.getSystemService(android.app.NotificationManager::class.java).cancel(id.toInt())

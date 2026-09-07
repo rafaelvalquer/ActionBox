@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.tags
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,8 @@ fun TagPickerBottomSheet(
     onCreate: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var newTag by remember { mutableStateOf("") }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -42,9 +45,9 @@ fun TagPickerBottomSheet(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Adicionar tags")
+            Text(textResources.getString(R.string.text_adicionar_tags_260))
             if (tags.isEmpty()) {
-                Text("Nenhuma tag criada ainda.")
+                Text(textResources.getString(R.string.text_nenhuma_tag_criada_ainda))
             } else {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(tags, key = { it.id }) { tag ->
@@ -62,7 +65,7 @@ fun TagPickerBottomSheet(
                     onValueChange = { newTag = it },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
-                    label = { Text("Nova tag") },
+                    label = { Text(textResources.getString(R.string.text_nova_tag)) },
                     placeholder = { Text("viagem") }
                 )
                 TextButton(
@@ -74,9 +77,9 @@ fun TagPickerBottomSheet(
                         }
                     },
                     enabled = newTag.trim().removePrefix("#").isNotBlank()
-                ) { Text("Criar") }
+                ) { Text(textResources.getString(R.string.text_criar)) }
             }
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Concluir") }
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(textResources.getString(R.string.text_concluir)) }
         }
     }
 }

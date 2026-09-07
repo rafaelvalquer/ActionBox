@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions.sheets
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,12 +22,14 @@ import com.luminor.actionbox.ui.designsystem.ActionBoxColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrioritySheet(current: ActionPriority, onDismiss: () -> Unit, onSelect: (ActionPriority) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text("Prioridade", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 10.dp))
-            PriorityOption("Baixa", ActionPriority.LOW, ActionBoxColors.Completed, current, onSelect, onDismiss)
-            PriorityOption("Normal", ActionPriority.NORMAL, MaterialTheme.colorScheme.primary, current, onSelect, onDismiss)
-            PriorityOption("Alta", ActionPriority.HIGH, ActionBoxColors.Danger, current, onSelect, onDismiss)
+            Text(textResources.getString(R.string.text_prioridade), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 10.dp))
+            PriorityOption(textResources.getString(R.string.text_baixa), ActionPriority.LOW, ActionBoxColors.Completed, current, onSelect, onDismiss)
+            PriorityOption(textResources.getString(R.string.text_normal), ActionPriority.NORMAL, MaterialTheme.colorScheme.primary, current, onSelect, onDismiss)
+            PriorityOption(textResources.getString(R.string.text_alta), ActionPriority.HIGH, ActionBoxColors.Danger, current, onSelect, onDismiss)
             androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp))
         }
     }

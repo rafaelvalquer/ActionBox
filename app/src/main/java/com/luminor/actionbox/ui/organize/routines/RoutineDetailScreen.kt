@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize.routines
 
+import com.luminor.actionbox.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,7 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.organize.routines.RoutineViewModel
 import com.luminor.actionbox.domain.ActionPriority
 import com.luminor.actionbox.domain.HabitStreakCalculator
 import com.luminor.actionbox.domain.OrganizationOwnerType
@@ -60,10 +61,12 @@ import java.util.Locale
 
 @Composable
 fun RoutineDetailScreen(
-    viewModel: ActionViewModel,
+    viewModel: RoutineViewModel,
     actionId: Long,
     onBack: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val context = LocalContext.current
     val all by viewModel.all.collectAsStateWithLifecycle()
     val completions by viewModel.completions.collectAsStateWithLifecycle()
@@ -125,14 +128,14 @@ fun RoutineDetailScreen(
                 Modifier.fillMaxWidth().padding(top = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = ::requestBack) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
-                Text("Rotina", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                IconButton(onClick = ::requestBack) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
+                Text(textResources.getString(R.string.text_rotina), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 if (editing) {
-                    TextButton(onClick = { if (dirty) discardDialog = true else editing = false }) { Text("Cancelar") }
+                    TextButton(onClick = { if (dirty) discardDialog = true else editing = false }) { Text(textResources.getString(R.string.text_cancelar)) }
                 } else {
                     TextButton(onClick = ::beginEditing) {
                         Icon(Icons.Rounded.Edit, contentDescription = null)
-                        Text("Editar")
+                        Text(textResources.getString(R.string.text_editar))
                     }
                 }
             }
@@ -145,17 +148,17 @@ fun RoutineDetailScreen(
                     onValueChange = { edit = edit.copy(title = it) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text("Nome da rotina") }
+                    label = { Text(textResources.getString(R.string.text_nome_da_rotina)) }
                 )
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Repetição", style = MaterialTheme.typography.titleMedium)
+                    Text(textResources.getString(R.string.text_repeticao), style = MaterialTheme.typography.titleMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf(
-                            RecurrenceType.DAILY to "Diária",
-                            RecurrenceType.WEEKLY to "Semanal",
-                            RecurrenceType.MONTHLY to "Mensal"
+                            RecurrenceType.DAILY to textResources.getString(R.string.text_diaria),
+                            RecurrenceType.WEEKLY to textResources.getString(R.string.text_semanal),
+                            RecurrenceType.MONTHLY to textResources.getString(R.string.text_mensal)
                         ).forEach { (type, label) ->
                             FilterChip(
                                 selected = edit.recurrenceType == type,
@@ -169,7 +172,7 @@ fun RoutineDetailScreen(
             if (edit.recurrenceType == RecurrenceType.WEEKLY) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Dias da semana", style = MaterialTheme.typography.titleMedium)
+                        Text(textResources.getString(R.string.text_dias_da_semana), style = MaterialTheme.typography.titleMedium)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             listOf(1 to "S", 2 to "T", 3 to "Q", 4 to "Q", 5 to "S", 6 to "S", 7 to "D").forEach { (day, label) ->
                                 FilterChip(
@@ -192,15 +195,15 @@ fun RoutineDetailScreen(
                     onValueChange = { timeText = it.take(5) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text("Horário") },
+                    label = { Text(textResources.getString(R.string.text_horario)) },
                     placeholder = { Text("19:00") }
                 )
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Lembrete", style = MaterialTheme.typography.titleMedium)
+                    Text(textResources.getString(R.string.text_lembrete), style = MaterialTheme.typography.titleMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                        listOf(null to "Não", 0 to "Na hora", 10 to "10 min", 30 to "30 min", 60 to "1 h").forEach { (minutes, label) ->
+                        listOf(null to textResources.getString(R.string.text_nao), 0 to textResources.getString(R.string.text_na_hora), 10 to textResources.getString(R.string.text_10_min), 30 to textResources.getString(R.string.text_30_min), 60 to textResources.getString(R.string.text_1_h)).forEach { (minutes, label) ->
                             FilterChip(
                                 selected = edit.reminderMinutes == minutes,
                                 onClick = { edit = edit.copy(reminderMinutes = minutes) },
@@ -212,9 +215,9 @@ fun RoutineDetailScreen(
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Prioridade", style = MaterialTheme.typography.titleMedium)
+                    Text(textResources.getString(R.string.text_prioridade), style = MaterialTheme.typography.titleMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(ActionPriority.LOW to "Baixa", ActionPriority.NORMAL to "Normal", ActionPriority.HIGH to "Alta").forEach { (priority, label) ->
+                        listOf(ActionPriority.LOW to textResources.getString(R.string.text_baixa), ActionPriority.NORMAL to textResources.getString(R.string.text_normal), ActionPriority.HIGH to textResources.getString(R.string.text_alta)).forEach { (priority, label) ->
                             FilterChip(
                                 selected = edit.priority == priority,
                                 onClick = { edit = edit.copy(priority = priority) },
@@ -227,22 +230,22 @@ fun RoutineDetailScreen(
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Pausar rotina", style = MaterialTheme.typography.titleMedium)
-                        Text("Uma rotina pausada mantém o histórico, mas deixa de aparecer na agenda futura.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(textResources.getString(R.string.text_pausar_rotina), style = MaterialTheme.typography.titleMedium)
+                        Text(textResources.getString(R.string.text_uma_rotina_pausada_mantem_o_historico_mas_deixa_de_aparecer_na_ag), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(checked = edit.paused, onCheckedChange = { edit = edit.copy(paused = it) })
                 }
             }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = { if (dirty) discardDialog = true else editing = false }, modifier = Modifier.weight(1f)) { Text("Cancelar") }
+                    OutlinedButton(onClick = { if (dirty) discardDialog = true else editing = false }, modifier = Modifier.weight(1f)) { Text(textResources.getString(R.string.text_cancelar)) }
                     Button(
                         onClick = {
                             val parsed = runCatching { LocalTime.parse(timeText, DateTimeFormatter.ofPattern("HH:mm")) }.getOrNull()
                             if (parsed == null) {
                                 viewModel.showMessage("Informe um horário válido no formato HH:mm")
                             } else if (edit.recurrenceType == RecurrenceType.WEEKLY && edit.recurrenceDays.isEmpty()) {
-                                viewModel.showMessage("Escolha pelo menos um dia da semana")
+                                viewModel.showMessage(textResources.getString(R.string.text_escolha_pelo_menos_um_dia_da_semana))
                             } else {
                                 viewModel.saveRoutineEdits(
                                     context = context,
@@ -260,16 +263,16 @@ fun RoutineDetailScreen(
                         },
                         enabled = edit.title.trim().isNotBlank() && dirty,
                         modifier = Modifier.weight(1f)
-                    ) { Text("Salvar") }
+                    ) { Text(textResources.getString(R.string.text_salvar)) }
                 }
             }
         } else {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("🏋️ ${action.title}", style = MaterialTheme.typography.headlineLarge)
-                    if (action.status == "CANCELLED") Text("Pausada", color = MaterialTheme.colorScheme.error)
-                    Text("🔥 Sequência atual: $streak", style = MaterialTheme.typography.titleMedium)
-                    Text("$completed de ${occurrences.size} ocorrências este mês", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (action.status == "CANCELLED") Text(textResources.getString(R.string.text_pausada), color = MaterialTheme.colorScheme.error)
+                    Text(textResources.getString(R.string.text_sequencia_atual , streak), style = MaterialTheme.typography.titleMedium)
+                    Text(textResources.getString(R.string.text_de_ocorrencias_este_mes , completed, occurrences.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (occurrences.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 }
             }
@@ -285,23 +288,23 @@ fun RoutineDetailScreen(
             }
             item {
                 val recurrenceText = when (val type = edit.recurrenceType) {
-                    RecurrenceType.DAILY -> "Todos os dias"
-                    RecurrenceType.MONTHLY -> "Todo mês"
+                    RecurrenceType.DAILY -> textResources.getString(R.string.text_todos_os_dias)
+                    RecurrenceType.MONTHLY -> textResources.getString(R.string.text_todo_mes)
                     RecurrenceType.WEEKLY -> {
-                        val names = mapOf(1 to "Seg", 2 to "Ter", 3 to "Qua", 4 to "Qui", 5 to "Sex", 6 to "Sáb", 7 to "Dom")
-                        edit.recurrenceDays.sorted().mapNotNull(names::get).joinToString(" · ").ifBlank { "Semanal" }
+                        val names = mapOf(1 to textResources.getString(R.string.text_seg), 2 to textResources.getString(R.string.text_ter), 3 to textResources.getString(R.string.text_qua), 4 to textResources.getString(R.string.text_qui), 5 to textResources.getString(R.string.text_sex), 6 to textResources.getString(R.string.text_sab), 7 to textResources.getString(R.string.text_dom))
+                        edit.recurrenceDays.sorted().mapNotNull(names::get).joinToString(" · ").ifBlank { textResources.getString(R.string.text_semanal) }
                     }
-                    RecurrenceType.NONE -> "Sem repetição"
+                    RecurrenceType.NONE -> textResources.getString(R.string.text_sem_repeticao)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("Frequência", style = MaterialTheme.typography.labelLarge)
+                    Text(textResources.getString(R.string.text_frequencia), style = MaterialTheme.typography.labelLarge)
                     Text(recurrenceText)
-                    Text("Horário", style = MaterialTheme.typography.labelLarge)
+                    Text(textResources.getString(R.string.text_horario), style = MaterialTheme.typography.labelLarge)
                     Text(edit.time.format(DateTimeFormatter.ofPattern("HH:mm")))
-                    Text("Lembrete", style = MaterialTheme.typography.labelLarge)
+                    Text(textResources.getString(R.string.text_lembrete), style = MaterialTheme.typography.labelLarge)
                     Text(reminderLabel(edit.reminderMinutes))
-                    Text("Histórico de configuração", style = MaterialTheme.typography.labelLarge)
-                    Text("${rules.count { it.actionId == actionId }} regra(s) registrada(s)", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_historico_de_configuracao), style = MaterialTheme.typography.labelLarge)
+                    Text(textResources.getString(R.string.text_regra_s_registrada_s , rules.count { it.actionId == actionId }), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (selectedTagIds.isNotEmpty()) {
@@ -311,11 +314,11 @@ fun RoutineDetailScreen(
                     }
                 }
             }
-            item { TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) "+ Adicionar tags" else "Editar tags") } }
+            item { TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) textResources.getString(R.string.text_adicionar_tags) else textResources.getString(R.string.text_editar_tags)) } }
             item {
                 TextButton(onClick = { deleteDialog = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("Mover rotina para a lixeira", color = MaterialTheme.colorScheme.error)
+                    Text(textResources.getString(R.string.text_mover_rotina_para_a_lixeira), color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(28.dp))
             }
@@ -341,22 +344,22 @@ fun RoutineDetailScreen(
     if (discardDialog) {
         AlertDialog(
             onDismissRequest = { discardDialog = false },
-            title = { Text("Descartar alterações?") },
-            text = { Text("As alterações da rotina não serão salvas.") },
-            dismissButton = { TextButton(onClick = { discardDialog = false }) { Text("Continuar editando") } },
-            confirmButton = { TextButton(onClick = { discardDialog = false; editing = false }) { Text("Descartar") } }
+            title = { Text(textResources.getString(R.string.text_descartar_alteracoes)) },
+            text = { Text(textResources.getString(R.string.text_as_alteracoes_da_rotina_nao_serao_salvas)) },
+            dismissButton = { TextButton(onClick = { discardDialog = false }) { Text(textResources.getString(R.string.text_continuar_editando)) } },
+            confirmButton = { TextButton(onClick = { discardDialog = false; editing = false }) { Text(textResources.getString(R.string.text_descartar)) } }
         )
     }
 
     if (deleteDialog) {
         AlertDialog(
             onDismissRequest = { deleteDialog = false },
-            title = { Text("Mover rotina para a lixeira?") },
-            text = { Text("O histórico será preservado enquanto a rotina estiver na lixeira.") },
-            dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text("Cancelar") } },
+            title = { Text(textResources.getString(R.string.text_mover_rotina_para_a_lixeira_325)) },
+            text = { Text(textResources.getString(R.string.text_o_historico_sera_preservado_enquanto_a_rotina_estiver_na_lixeira)) },
+            dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text(textResources.getString(R.string.text_cancelar)) } },
             confirmButton = {
                 TextButton(onClick = { deleteDialog = false; viewModel.delete(actionId); onBack() }) {
-                    Text("Mover", color = MaterialTheme.colorScheme.error)
+                    Text(textResources.getString(R.string.text_mover), color = MaterialTheme.colorScheme.error)
                 }
             }
         )
@@ -417,12 +420,13 @@ private fun RoutineCalendar(
     }
 }
 
+@Composable
 private fun reminderLabel(minutes: Int?): String = when (minutes) {
-    null -> "Sem lembrete"
-    0 -> "Na hora"
-    10 -> "10 min antes"
-    30 -> "30 min antes"
-    60 -> "1 h antes"
-    1440 -> "1 dia antes"
-    else -> "$minutes min antes"
+    null -> androidx.compose.ui.res.stringResource(R.string.text_sem_lembrete_327)
+    0 -> androidx.compose.ui.res.stringResource(R.string.text_na_hora)
+    10 -> androidx.compose.ui.res.stringResource(R.string.text_10_min_antes)
+    30 -> androidx.compose.ui.res.stringResource(R.string.text_30_min_antes)
+    60 -> androidx.compose.ui.res.stringResource(R.string.text_1_h_antes)
+    1440 -> androidx.compose.ui.res.stringResource(R.string.text_1_dia_antes)
+    else -> androidx.compose.ui.res.stringResource(R.string.text_min_antes , minutes)
 }

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.agenda
 
+import com.luminor.actionbox.R
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -47,7 +48,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.agenda.AgendaViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
@@ -71,15 +72,24 @@ import java.util.Locale
 private enum class AgendaMode { DAY, WEEK, MONTH, LIST }
 
 @Composable
-fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
+fun AgendaScreen(viewModel: AgendaViewModel, onActionOpen: (Long) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val all by viewModel.all.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val completions by viewModel.completions.collectAsStateWithLifecycle()
+    val rules by viewModel.routineRules.collectAsStateWithLifecycle()
     var modeName by rememberSaveable { mutableStateOf(AgendaMode.MONTH.name) }
     val mode = runCatching { AgendaMode.valueOf(modeName) }.getOrDefault(AgendaMode.MONTH)
     var month by remember { mutableStateOf(YearMonth.now()) }
     var selected by rememberSaveable { mutableStateOf(LocalDate.now().toString()) }
     val selectedDate = runCatching { LocalDate.parse(selected) }.getOrDefault(LocalDate.now())
+    androidx.compose.runtime.LaunchedEffect(month, selectedDate, mode) {
+        // Include spillover weeks in the month grid and the upcoming list window.
+        val start = minOf(month.atDay(1).minusDays(7), selectedDate.minusDays(7))
+        val end = maxOf(month.atEndOfMonth().plusDays(7), selectedDate.plusDays(60))
+        viewModel.setPeriod(start, end)
+    }
     var dragTotal by remember { mutableFloatStateOf(0f) }
 
     fun setSelected(date: LocalDate) {
@@ -95,7 +105,7 @@ fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
 
     fun entries(date: LocalDate): List<ActionEntity> = AgendaUseCase.entriesForDay(date, all) { action, day ->
         if (RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) RecurrenceCalculator.occursOn(action, day)
-        else viewModel.routineOccursOn(action, day)
+        else com.luminor.actionbox.domain.routine.RoutineEvaluation.routineOccursOn(action, day, rules)
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -110,10 +120,10 @@ fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
         ) {
             item {
                 Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Agenda", style = MaterialTheme.typography.headlineLarge)
-                    Text("Tudo que tem dia, horário ou recorrência.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_agenda), style = MaterialTheme.typography.headlineLarge)
+                    Text(textResources.getString(R.string.text_tudo_que_tem_dia_horario_ou_recorrencia), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     ActionSegmentedControl(
-                        listOf("Dia", "Semana", "Mês", "Lista"),
+                        listOf(textResources.getString(R.string.text_dia), textResources.getString(R.string.text_semana), textResources.getString(R.string.text_mes), textResources.getString(R.string.text_lista)),
                         AgendaMode.entries.indexOf(mode),
                         onSelected = { modeName = AgendaMode.entries[it].name }
                     )
@@ -169,15 +179,15 @@ fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                                IconButton(onClick = { changeMonth(month.minusMonths(1)) }) { Icon(ActionBoxIcons.Back, contentDescription = "Mês anterior") }
+                                IconButton(onClick = { changeMonth(month.minusMonths(1)) }) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_mes_anterior)) }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         "${month.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("pt-BR")).replaceFirstChar { it.uppercase() }} ${month.year}",
                                         style = MaterialTheme.typography.titleLarge
                                     )
-                                    TextButton(onClick = { setSelected(LocalDate.now()) }) { Text("Hoje") }
+                                    TextButton(onClick = { setSelected(LocalDate.now()) }) { Text(textResources.getString(R.string.text_hoje)) }
                                 }
-                                IconButton(onClick = { changeMonth(month.plusMonths(1)) }) { Icon(ActionBoxIcons.Next, contentDescription = "Próximo mês") }
+                                IconButton(onClick = { changeMonth(month.plusMonths(1)) }) { Icon(ActionBoxIcons.Next, contentDescription = textResources.getString(R.string.text_proximo_mes)) }
                             }
 
                             AnimatedContent(
@@ -226,19 +236,19 @@ fun AgendaScreen(viewModel: ActionViewModel, onActionOpen: (Long) -> Unit) {
                     val today = LocalDate.now()
                     val range = AgendaUseCase.entriesForRange(today, today.plusDays(30), all) { action, day ->
                         if (RecurrenceCalculator.recurrenceType(action) == RecurrenceType.NONE) RecurrenceCalculator.occursOn(action, day)
-                        else viewModel.routineOccursOn(action, day)
+                        else com.luminor.actionbox.domain.routine.RoutineEvaluation.routineOccursOn(action, day, rules)
                     }
-                    if (range.isEmpty()) item { Text("Sua agenda está livre nos próximos 30 dias.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    if (range.isEmpty()) item { Text(textResources.getString(R.string.text_sua_agenda_esta_livre_nos_proximos_30_dias), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     range.forEach { (date, dayEntries) ->
-                        item(key = "timeline-$date-${completions.size}") {
+                        item(key = textResources.getString(R.string.text_timeline , date, completions.size)) {
                             DayTimeline(date, dayEntries, viewModel, settings.hapticsEnabled, onActionOpen)
                         }
                     }
                     val undated = all.filter { it.type == ActionType.TASK.name && it.scheduledAt == null && it.status == ActionStatus.PENDING.name }
                     if (undated.isNotEmpty()) {
-                        item { Text("Sem data", style = MaterialTheme.typography.titleLarge) }
+                        item { Text(textResources.getString(R.string.text_sem_data), style = MaterialTheme.typography.titleLarge) }
                         undated.forEach { action ->
-                            item(key = "undated-${action.id}") { TimelineAction(action, today, viewModel, settings.hapticsEnabled, onActionOpen) }
+                            item(key = textResources.getString(R.string.text_undated , action.id)) { TimelineAction(action, today, viewModel, settings.hapticsEnabled, onActionOpen) }
                         }
                     }
                 }
@@ -255,17 +265,19 @@ private fun DayNavigation(
     onToday: () -> Unit,
     onNext: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        IconButton(onClick = onPrevious) { Icon(ActionBoxIcons.Back, contentDescription = "Dia anterior") }
+        IconButton(onClick = onPrevious) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_dia_anterior)) }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 date.format(DateTimeFormatter.ofPattern("EEEE", Locale.forLanguageTag("pt-BR"))).uppercase(),
                 style = MaterialTheme.typography.labelLarge
             )
             Text(date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", Locale.forLanguageTag("pt-BR"))), style = MaterialTheme.typography.titleLarge)
-            if (date != LocalDate.now()) TextButton(onClick = onToday) { Text("Hoje") }
+            if (date != LocalDate.now()) TextButton(onClick = onToday) { Text(textResources.getString(R.string.text_hoje)) }
         }
-        IconButton(onClick = onNext) { Icon(ActionBoxIcons.Next, contentDescription = "Próximo dia") }
+        IconButton(onClick = onNext) { Icon(ActionBoxIcons.Next, contentDescription = textResources.getString(R.string.text_proximo_dia)) }
     }
 }
 
@@ -279,17 +291,19 @@ private fun WeekNavigation(
     onToday: () -> Unit,
     onNext: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            IconButton(onClick = onPrevious) { Icon(ActionBoxIcons.Back, contentDescription = "Semana anterior") }
+            IconButton(onClick = onPrevious) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_semana_anterior)) }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "${weekStart.format(DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("pt-BR")))} – ${weekStart.plusDays(6).format(DateTimeFormatter.ofPattern("d MMM", Locale.forLanguageTag("pt-BR")))}",
                     style = MaterialTheme.typography.titleMedium
                 )
-                TextButton(onClick = onToday) { Text("Hoje") }
+                TextButton(onClick = onToday) { Text(textResources.getString(R.string.text_hoje)) }
             }
-            IconButton(onClick = onNext) { Icon(ActionBoxIcons.Next, contentDescription = "Próxima semana") }
+            IconButton(onClick = onNext) { Icon(ActionBoxIcons.Next, contentDescription = textResources.getString(R.string.text_proxima_semana)) }
         }
         Surface(shape = MaterialTheme.shapes.extraLarge, tonalElevation = 1.dp) {
             Row(Modifier.fillMaxWidth().padding(8.dp)) {
@@ -332,7 +346,7 @@ private fun MonthCalendar(
     month: YearMonth,
     selected: LocalDate,
     entriesFor: (LocalDate) -> List<ActionEntity>,
-    viewModel: ActionViewModel,
+    viewModel: AgendaViewModel,
     modifier: Modifier = Modifier,
     onSelect: (LocalDate) -> Unit
 ) {
@@ -366,7 +380,7 @@ private fun DayCell(
     date: LocalDate,
     selected: LocalDate,
     entries: List<ActionEntity>,
-    viewModel: ActionViewModel,
+    viewModel: AgendaViewModel,
     modifier: Modifier,
     onClick: () -> Unit
 ) {
@@ -409,16 +423,18 @@ private fun DayCell(
 private fun DayTimeline(
     date: LocalDate,
     entries: List<ActionEntity>,
-    viewModel: ActionViewModel,
+    viewModel: AgendaViewModel,
     hapticsEnabled: Boolean,
     onActionOpen: (Long) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             date.format(DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("pt-BR"))).replaceFirstChar { it.uppercase() },
             style = MaterialTheme.typography.titleLarge
         )
-        if (entries.isEmpty()) Text("Nada planejado para este dia.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (entries.isEmpty()) Text(textResources.getString(R.string.text_nada_planejado_para_este_dia), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         entries.forEach { TimelineAction(it, date, viewModel, hapticsEnabled, onActionOpen) }
     }
 }
@@ -427,10 +443,12 @@ private fun DayTimeline(
 private fun TimelineAction(
     action: ActionEntity,
     date: LocalDate,
-    viewModel: ActionViewModel,
+    viewModel: AgendaViewModel,
     hapticsEnabled: Boolean,
     onActionOpen: (Long) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val completed = viewModel.isCompletedOn(action, date)
     val color = if (completed) ActionBoxColors.Completed else actionTypeColor(action.type)
     val time = action.scheduledAt?.let {
@@ -451,7 +469,7 @@ private fun TimelineAction(
         }
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(action.title, style = MaterialTheme.typography.bodyLarge, textDecoration = if (completed) TextDecoration.LineThrough else null)
-            if (RecurrenceCalculator.recurrenceType(action).name != "NONE") Text("Recorrente", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (RecurrenceCalculator.recurrenceType(action).name != "NONE") Text(textResources.getString(R.string.text_recorrente), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         IconButton(onClick = {
             if (hapticsEnabled) haptic.performHapticFeedback(HapticFeedbackType.LongPress)

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize.notes
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -35,6 +36,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteCard(note: ActionEntity, onClick: () -> Unit, onMenu: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val background = noteBackground(note.noteColor)
     val accent = noteAccent(note.noteColor)
     val date = Instant.ofEpochMilli(note.updatedAt ?: note.createdAt).atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -52,14 +55,14 @@ fun NoteCard(note: ActionEntity, onClick: () -> Unit, onMenu: () -> Unit) {
             Column(Modifier.weight(1f).padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        (note.noteCategory ?: "Sem categoria").uppercase(),
+                        (note.noteCategory ?: textResources.getString(R.string.text_sem_categoria)).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         color = accent,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
-                    if (note.isPinned) Icon(Icons.Rounded.PushPin, contentDescription = "Fixada", tint = accent)
-                    IconButton(onClick = onMenu) { Icon(Icons.Rounded.MoreVert, contentDescription = "Opções") }
+                    if (note.isPinned) Icon(Icons.Rounded.PushPin, contentDescription = textResources.getString(R.string.text_fixada), tint = accent)
+                    IconButton(onClick = onMenu) { Icon(Icons.Rounded.MoreVert, contentDescription = textResources.getString(R.string.text_opcoes)) }
                 }
                 Text(note.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 if (note.content.isNotBlank() && note.content != note.title) {

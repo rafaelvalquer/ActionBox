@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.capture
 
+import com.luminor.actionbox.R
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -41,11 +42,13 @@ fun CaptureResult(
     onToggleEditor: () -> Unit,
     onReset: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val context = LocalContext.current
     val color = actionTypeColor(action.type.name)
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) viewModel.saveDetected(context)
-        else viewModel.showMessage("Permita notificações para criar ações com aviso.")
+        else viewModel.showMessage(textResources.getString(R.string.text_permita_notificacoes_para_criar_acoes_com_aviso))
     }
 
     fun save() {
@@ -74,14 +77,14 @@ fun CaptureResult(
                     )
                 }
             }
-            IconButton(onClick = onReset) { Icon(ActionBoxIcons.Close, contentDescription = "Limpar") }
+            IconButton(onClick = onReset) { Icon(ActionBoxIcons.Close, contentDescription = textResources.getString(R.string.text_limpar)) }
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            ActionBadge("Confiança ${action.confidenceLabel.lowercase()}", color)
+            ActionBadge(textResources.getString(R.string.text_confianca , action.confidenceLabel.lowercase()), color)
             androidx.compose.material3.TextButton(onClick = onToggleEditor) {
                 Icon(ActionBoxIcons.Tune, contentDescription = null, modifier = Modifier.size(17.dp))
-                Text(if (editorVisible) "  Ocultar detalhes" else "  Editar detalhes")
+                Text(if (editorVisible) textResources.getString(R.string.text_ocultar_detalhes) else textResources.getString(R.string.text_editar_detalhes))
             }
         }
 
@@ -89,13 +92,13 @@ fun CaptureResult(
 
         ActionButton(
             text = when (action.type) {
-                ActionType.LIST -> "Criar lista"
-                ActionType.PROJECT -> "Criar projeto"
-                ActionType.NOTE -> "Salvar nota"
-                ActionType.EVENT -> "Salvar compromisso"
-                ActionType.REMINDER -> "Programar lembrete"
-                ActionType.REPLY -> "Copiar resposta"
-                else -> "Criar ação"
+                ActionType.LIST -> textResources.getString(R.string.text_criar_lista)
+                ActionType.PROJECT -> textResources.getString(R.string.text_criar_projeto)
+                ActionType.NOTE -> textResources.getString(R.string.text_salvar_nota)
+                ActionType.EVENT -> textResources.getString(R.string.text_salvar_compromisso)
+                ActionType.REMINDER -> textResources.getString(R.string.text_programar_lembrete)
+                ActionType.REPLY -> textResources.getString(R.string.text_copiar_resposta)
+                else -> textResources.getString(R.string.text_criar_acao)
             },
             onClick = {
                 if (action.type == ActionType.REPLY) {
@@ -106,10 +109,10 @@ fun CaptureResult(
         )
 
         if (action.type == ActionType.EVENT) {
-            ActionButton("Salvar e adicionar ao calendário", onClick = { viewModel.saveDetectedAndOpenCalendar(context) }, primary = false)
+            ActionButton(textResources.getString(R.string.text_salvar_e_adicionar_ao_calendario), onClick = { viewModel.saveDetectedAndOpenCalendar(context) }, primary = false)
         }
         if (action.type == ActionType.CONTACT) {
-            ActionButton("Salvar nos contatos", onClick = { viewModel.insertContact(context, action.metadata ?: action.content) }, primary = false)
+            ActionButton(textResources.getString(R.string.text_salvar_nos_contatos), onClick = { viewModel.insertContact(context, action.metadata ?: action.content) }, primary = false)
         }
     }
 }

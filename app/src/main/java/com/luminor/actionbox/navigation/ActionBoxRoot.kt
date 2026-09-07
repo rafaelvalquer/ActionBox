@@ -1,5 +1,6 @@
 package com.luminor.actionbox.navigation
 
+import com.luminor.actionbox.R
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
@@ -48,7 +49,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.RootViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.luminor.actionbox.ui.DetailContent
 import com.luminor.actionbox.ui.actions.ActionEditorScreen
 import com.luminor.actionbox.ui.agenda.AgendaScreen
 import com.luminor.actionbox.ui.capture.CaptureViewModel
@@ -72,32 +75,34 @@ import com.luminor.actionbox.ui.settings.SettingsScreen
 import com.luminor.actionbox.ui.trash.TrashScreen
 import com.luminor.actionbox.ui.trash.TrashViewModel
 
-private data class BottomDestination(val route: String, val label: String, val icon: ImageVector)
+private data class BottomDestination(val route: String, val label: Int, val icon: ImageVector)
 
 private val bottomDestinations = listOf(
-    BottomDestination("today", "Hoje", ActionBoxIcons.Home),
-    BottomDestination("agenda", "Agenda", ActionBoxIcons.Agenda),
-    BottomDestination("organize", "Organizar", ActionBoxIcons.Organize),
-    BottomDestination("saved", "Depois", ActionBoxIcons.Saved)
+    BottomDestination("today", R.string.text_hoje, ActionBoxIcons.Home),
+    BottomDestination("agenda", R.string.text_agenda, ActionBoxIcons.Agenda),
+    BottomDestination("organize", R.string.text_organizar, ActionBoxIcons.Organize),
+    BottomDestination("saved", R.string.text_depois, ActionBoxIcons.Saved)
 )
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel) {
+fun ActionBoxRoot(viewModel: RootViewModel, captureViewModel: CaptureViewModel) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
+    val context = androidx.compose.ui.platform.LocalContext.current
     val navController = rememberNavController()
     val snackbar = remember { SnackbarHostState() }
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val rootRoutes = bottomDestinations.map { it.route }.toSet()
 
-    LaunchedEffect(Unit) { viewModel.message.collect { snackbar.showSnackbar(it) } }
     LaunchedEffect(Unit) {
         viewModel.uiEvents.collect { event ->
             when (event) {
-                is AppUiEvent.Message -> snackbar.showSnackbar(event.text)
+                is AppUiEvent.Message -> snackbar.showSnackbar(event.text.resolve(context))
                 is AppUiEvent.Undo -> {
                     val result = snackbar.showSnackbar(
-                        message = event.text,
+                        message = event.text.resolve(context),
                         actionLabel = "DESFAZER",
                         withDismissAction = true
                     )
@@ -154,8 +159,9 @@ fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel
                 composable("today") {
                     SharedDestination(sharedScope, this) {
                         HomeScreen(
-                            viewModel = viewModel,
+                            viewModel = hiltViewModel(),
                             captureViewModel = captureViewModel,
+                            onHistory = { navController.navigate("history") },
                             onSettings = { navController.navigate("settings") },
                             onActionOpen = { navController.navigate("action/$it") },
                             onSearch = { navController.navigate("search") }
@@ -164,13 +170,14 @@ fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel
                 }
                 composable("agenda") {
                     SharedDestination(sharedScope, this) {
-                        AgendaScreen(viewModel, onActionOpen = { navController.navigate("action/$it") })
+                        AgendaScreen(hiltViewModel(), onActionOpen = { navController.navigate("action/$it") })
                     }
                 }
                 composable("organize") {
                     SharedDestination(sharedScope, this) {
                         OrganizeScreen(
-                            actionViewModel = viewModel,
+                            organizeViewModel = hiltViewModel(),
+                            notesViewModel = hiltViewModel(),
                             onProjectOpen = { navController.navigate("project/$it") },
                             onListOpen = { navController.navigate("list/$it") },
                             onRoutineOpen = { navController.navigate("routine/$it") },
@@ -181,13 +188,13 @@ fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel
                 }
                 composable("saved") {
                     SharedDestination(sharedScope, this) {
-                        SavedScreen(viewModel, onOpenDetail = { navController.navigate("saved/$it") })
+                        SavedScreen(hiltViewModel(), onOpenDetail = { navController.navigate("saved/$it") })
                     }
                 }
                 composable("settings") {
                     SharedDestination(sharedScope, this) {
                         SettingsScreen(
-                            viewModel = viewModel,
+                            viewModel = hiltViewModel(),
                             onBack = { navController.popBackStack() },
                             onTrash = { navController.navigate("trash") }
                         )
@@ -195,7 +202,7 @@ fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel
                 }
                 composable("search") {
                     SharedDestination(sharedScope, this) {
-                        val searchViewModel = androidx.lifecycle.viewmodel.compose.viewModel<GlobalSearchViewModel>()
+                        val searchViewModel = hiltViewModel<GlobalSearchViewModel>()
                         GlobalSearchScreen(
                             viewModel = searchViewModel,
                             onBack = { navController.popBackStack() },
@@ -209,62 +216,68 @@ fun ActionBoxRoot(viewModel: ActionViewModel, captureViewModel: CaptureViewModel
                 }
                 composable("trash") {
                     SharedDestination(sharedScope, this) {
-                        val trashViewModel = androidx.lifecycle.viewmodel.compose.viewModel<TrashViewModel>()
+                        val trashViewModel = hiltViewModel<TrashViewModel>()
                         TrashScreen(trashViewModel, onBack = { navController.popBackStack() })
                     }
                 }
-                composable("action/{id}") { entry ->
+                composable("history") {
+                    com.luminor.actionbox.ui.history.HistoryScreen(hiltViewModel(), onBack = { navController.popBackStack() })
+                }
+                composable(textResources.getString(R.string.text_action_id)) {
                     SharedDestination(sharedScope, this) {
-                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        val all by viewModel.all.collectAsStateWithLifecycle()
-                        val action = all.firstOrNull { it.id == id }
-                        if (action != null) {
-                            ActionEditorScreen(
-                                viewModel,
-                                action,
-                                onBack = { navController.popBackStack() },
-                                onNoteOpen = { navController.navigate("note/$it") }
-                            )
+                        val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.actions.ActionEditorViewModel>()
+                        val detail by detailViewModel.detail.collectAsStateWithLifecycle()
+                        DetailContent(detail, onBack = { navController.popBackStack() }, onRetry = { detailViewModel.retry() }) { item ->
+                            ActionEditorScreen(detailViewModel, item, onBack = { navController.popBackStack() }, onNoteOpen = { navController.navigate("note/$it") })
                         }
                     }
                 }
-                composable("note/{id}") { entry ->
+                composable(textResources.getString(R.string.text_note_id)) {
                     SharedDestination(sharedScope, this) {
-                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        val notes by viewModel.notes.collectAsStateWithLifecycle()
-                        val note = notes.firstOrNull { it.id == id }
-                        if (note != null) NoteDetailScreen(viewModel, note, onBack = { navController.popBackStack() })
+                        val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.notes.NoteDetailViewModel>()
+                        val detail by detailViewModel.detail.collectAsStateWithLifecycle()
+                        DetailContent(detail, onBack = { navController.popBackStack() }, onRetry = { detailViewModel.retry() }) { item ->
+                            NoteDetailScreen(detailViewModel, item, onBack = { navController.popBackStack() })
+                        }
                     }
                 }
-                composable("project/{id}") { entry ->
+                composable(textResources.getString(R.string.text_project_id)) {
                     SharedDestination(sharedScope, this) {
-                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        ProjectDetailScreen(
-                            viewModel,
-                            id,
-                            onBack = { navController.popBackStack() },
-                            onNoteOpen = { navController.navigate("note/$it") }
-                        )
+                        val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.ProjectViewModel>()
+                        val detail by detailViewModel.detail.collectAsStateWithLifecycle()
+                        DetailContent(detail, onBack = { navController.popBackStack() }, onRetry = { detailViewModel.retry() }) { item ->
+                            ProjectDetailScreen(detailViewModel, item.id, onBack = { navController.popBackStack() }, onNoteOpen = { navController.navigate("note/$it") })
+                        }
                     }
                 }
-                composable("list/{id}") { entry ->
+                composable(textResources.getString(R.string.text_list_id)) {
                     SharedDestination(sharedScope, this) {
-                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        ListDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                        val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.lists.ListViewModel>()
+                        val detail by detailViewModel.detail.collectAsStateWithLifecycle()
+                        DetailContent(detail, onBack = { navController.popBackStack() }, onRetry = { detailViewModel.retry() }) { item ->
+                            ListDetailScreen(detailViewModel, item.id, onBack = { navController.popBackStack() })
+                        }
                     }
                 }
-                composable("routine/{id}") { entry ->
+                composable(textResources.getString(R.string.text_routine_id)) {
                     SharedDestination(sharedScope, this) {
-                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        RoutineDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                        val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.organize.routines.RoutineViewModel>()
+                        val detail by detailViewModel.detail.collectAsStateWithLifecycle()
+                        DetailContent(detail, onBack = { navController.popBackStack() }, onRetry = { detailViewModel.retry() }) { item ->
+                            RoutineDetailScreen(detailViewModel, item.id, onBack = { navController.popBackStack() })
+                        }
                     }
                 }
-                composable("saved/{id}") { entry ->
+                composable(textResources.getString(R.string.text_saved_id)) {
                     SharedDestination(sharedScope, this) {
-                        val id = entry.arguments?.getString("id")?.toLongOrNull() ?: return@SharedDestination
-                        SavedDetailScreen(viewModel, id, onBack = { navController.popBackStack() })
+                        val detailViewModel = hiltViewModel<com.luminor.actionbox.ui.saved.SavedDetailViewModel>()
+                        val detail by detailViewModel.detail.collectAsStateWithLifecycle()
+                        DetailContent(detail, onBack = { navController.popBackStack() }, onRetry = { detailViewModel.retry() }) { item ->
+                            SavedDetailScreen(detailViewModel, item.id, onBack = { navController.popBackStack() })
+                        }
                     }
                 }
+
             }
         }
     }
@@ -286,6 +299,8 @@ private fun SharedDestination(
 
 @Composable
 private fun ActionBottomNavigation(selectedRoute: String?, onSelect: (String) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val haptic = LocalHapticFeedback.current
     Surface(
         tonalElevation = 6.dp,
@@ -317,7 +332,7 @@ private fun ActionBottomNavigation(selectedRoute: String?, onSelect: (String) ->
                                 onSelect(item.route)
                             }
                         }
-                        .semantics { this.selected = selected; contentDescription = item.label }
+                        .semantics { this.selected = selected; contentDescription = textResources.getString(item.label) }
                         .padding(vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -328,7 +343,7 @@ private fun ActionBottomNavigation(selectedRoute: String?, onSelect: (String) ->
                         tint = tint,
                         modifier = Modifier.size(23.dp).graphicsLayer { scaleX = scale; scaleY = scale }
                     )
-                    Text(item.label, style = MaterialTheme.typography.labelMedium, color = tint)
+                    Text(textResources.getString(item.label), style = MaterialTheme.typography.labelMedium, color = tint)
                     Surface(
                         modifier = Modifier.size(width = 22.dp, height = 3.dp).graphicsLayer { scaleX = indicatorScale },
                         shape = MaterialTheme.shapes.extraLarge,

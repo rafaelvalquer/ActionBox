@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.capture
 
+import com.luminor.actionbox.R
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
@@ -33,22 +34,19 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-class CaptureViewModel(application: Application) : AndroidViewModel(application) {
-    private val app = application as ActionBoxApplication
-    private val detectAction = DetectActionUseCase()
-    private val scheduleReminder = ScheduleReminderUseCase(
-        ReminderPlanner(),
-        ReminderScheduler(application.applicationContext)
-    )
-    private val createAction = CreateActionUseCase(app.repository, scheduleReminder)
-    private val createList = CreateListUseCase(app.repository, scheduleReminder)
-    private val createProject = CreateProjectUseCase(app.repository)
-    private val saveReply = SaveReplyUseCase(app.repository)
-    private val settings = app.settingsRepository.settings.stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        UiSettings()
-    )
+@dagger.hilt.android.lifecycle.HiltViewModel
+class CaptureViewModel @javax.inject.Inject constructor(
+    private val textResources: com.luminor.actionbox.ui.events.TextResources,
+    private val detectAction: DetectActionUseCase,
+    private val createAction: CreateActionUseCase,
+    private val createList: CreateListUseCase,
+    private val createProject: CreateProjectUseCase,
+    private val saveReply: SaveReplyUseCase,
+    private val settingsRepository: com.luminor.actionbox.data.preferences.SettingsRepository,
+    private val uiEventBus: com.luminor.actionbox.ui.events.AppUiEventBus
+) : androidx.lifecycle.ViewModel() {
+    // Preferences are tiny and needed by share/capture callbacks even without a screen collector.
+    private val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, UiSettings())
 
     private val _input = MutableStateFlow("")
     val input: StateFlow<String> = _input.asStateFlow()
@@ -63,8 +61,9 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         _input.value = value
     }
 
+    fun showMessage(@androidx.annotation.StringRes id: Int, vararg args: Any) = uiEventBus.message(id, *args)
     fun showMessage(value: String) {
-        app.uiEventBus.message(value)
+        uiEventBus.message(value)
     }
 
     fun clearInput() {
@@ -75,7 +74,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     fun analyze() {
         val text = _input.value.trim()
         if (text.isBlank()) {
-            showMessage("Digite ou cole algo primeiro.")
+            showMessage(R.string.text_digite_ou_cole_algo_primeiro)
             return
         }
         _detected.value = detectAction(text)
@@ -170,12 +169,12 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
             when (action.type) {
                 ActionType.LIST -> {
                     val result = createList(action)
-                    showMessage("Lista criada com ${result.itemCount} itens")
+                    showMessage(R.string.text_lista_criada_com_itens, result.itemCount)
                 }
                 ActionType.PROJECT -> {
                     val result = createProject(action)
                     showMessage(
-                        "Projeto criado${if (result.taskCount > 0) " com ${result.taskCount} tarefas" else ""}"
+                        R.string.text_projeto_criado, if (result.taskCount > 0) " com ${result.taskCount} tarefas" else ""
                     )
                 }
                 ActionType.REPLY -> Unit
@@ -190,7 +189,7 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         if (action.type != ActionType.EVENT) return
         viewModelScope.launch {
             createAction(action)
-            showMessage("Compromisso salvo na agenda")
+            showMessage(R.string.text_compromisso_salvo_na_agenda)
             ExternalActions.openCalendar(context, action)
             clearInput()
         }
@@ -205,11 +204,11 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
         ReplyEngine.generate(message, settings.value.replyTone)
 
     fun copyReply(context: Context, text: String) {
-        ExternalActions.copy(context, "Resposta ActionBox", text)
+        ExternalActions.copy(context, textResources.getString(R.string.text_resposta_actionbox), text)
         viewModelScope.launch {
             val source = _detected.value?.sourceText ?: _input.value
             saveReply(text = text, source = source)
-            showMessage("Resposta copiada")
+            showMessage(R.string.text_resposta_copiada)
             clearInput()
         }
     }
@@ -221,13 +220,13 @@ class CaptureViewModel(application: Application) : AndroidViewModel(application)
     private suspend fun saveStandardAction(context: Context, action: DetectedAction) {
         createAction(action)
         when (action.type) {
-            ActionType.EVENT -> showMessage("Compromisso salvo na agenda")
+            ActionType.EVENT -> showMessage(R.string.text_compromisso_salvo_na_agenda)
             ActionType.TASK -> showMessage(
-                if (action.recurrenceType == RecurrenceType.NONE) "Tarefa criada" else "Rotina criada"
+                if (action.recurrenceType == RecurrenceType.NONE) textResources.getString(R.string.text_tarefa_criada) else textResources.getString(R.string.text_rotina_criada)
             )
-            ActionType.REMINDER -> showMessage("Lembrete programado")
-            ActionType.NOTE -> showMessage("Nota salva")
-            ActionType.READ_LATER -> showMessage("Salvo para depois")
+            ActionType.REMINDER -> showMessage(R.string.text_lembrete_programado)
+            ActionType.NOTE -> showMessage(R.string.text_nota_salva)
+            ActionType.READ_LATER -> showMessage(R.string.text_salvo_para_depois)
             ActionType.ADDRESS -> ExternalActions.openMaps(context, action.content)
             ActionType.CONTACT -> ExternalActions.openDialer(
                 context,

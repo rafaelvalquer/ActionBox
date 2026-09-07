@@ -9,6 +9,44 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ActionDao {
+
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL ORDER BY createdAt DESC")
+    suspend fun getActiveActions(): List<ActionEntity>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND projectId = :id ORDER BY sortOrder, createdAt, id")
+    suspend fun getProjectActions(id: Long): List<ActionEntity>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND type = 'LIST' AND metadata = :id")
+    suspend fun getListAgendaActions(id: String): List<ActionEntity>
+    @Query("SELECT EXISTS(SELECT 1 FROM action_completions WHERE actionId = :id AND occurrenceDate = :date)")
+    suspend fun isCompletedOn(id: Long, date: String): Boolean
+    @Query("SELECT * FROM actions WHERE id = :id AND deletedAt IS NULL")
+    fun observeAction(id: Long): Flow<ActionEntity?>
+    @Query("SELECT * FROM projects WHERE id = :id AND deletedAt IS NULL")
+    fun observeProject(id: Long): Flow<ProjectEntity?>
+    @Query("SELECT * FROM action_lists WHERE id = :id AND deletedAt IS NULL")
+    fun observeList(id: Long): Flow<ActionListEntity?>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND projectId = :id ORDER BY sortOrder, createdAt, id")
+    fun observeProjectActions(id: Long): Flow<List<ActionEntity>>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND projectId IS NOT NULL")
+    fun observeAllProjectActions(): Flow<List<ActionEntity>>
+    @Query("SELECT * FROM list_items WHERE listId = :id ORDER BY position, id")
+    fun observeItems(id: Long): Flow<List<ListItemEntity>>
+    @Query("SELECT * FROM tag_refs WHERE ownerType = :type AND ownerId = :id")
+    fun observeOwnerTagRefs(type: String, id: Long): Flow<List<TagRefEntity>>
+    @Query("SELECT * FROM content_links WHERE (sourceType = :type AND sourceId = :id) OR (targetType = :type AND targetId = :id) ORDER BY createdAt DESC")
+    fun observeOwnerLinks(type: String, id: Long): Flow<List<ContentLinkEntity>>
+    @Query("SELECT * FROM action_completions WHERE actionId = :id ORDER BY completedAt DESC")
+    fun observeActionCompletions(id: Long): Flow<List<ActionCompletionEntity>>
+    @Query("SELECT * FROM action_completions WHERE occurrenceDate BETWEEN :start AND :end ORDER BY completedAt DESC")
+    fun observePeriodCompletions(start: String, end: String): Flow<List<ActionCompletionEntity>>
+    @Query("SELECT * FROM routine_rules WHERE actionId = :id ORDER BY effectiveFrom DESC")
+    fun observeActionRules(id: Long): Flow<List<RoutineRuleEntity>>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND recurrenceType IS NOT NULL AND recurrenceType != 'NONE' AND status != 'ARCHIVED'")
+    fun observeRoutines(): Flow<List<ActionEntity>>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND type IN ('TASK','REMINDER','EVENT','LIST') AND ((scheduledAt >= :start AND scheduledAt < :end) OR (recurrenceType IS NOT NULL AND recurrenceType != 'NONE') OR (scheduledAt IS NULL AND status = 'PENDING')) ORDER BY scheduledAt, createdAt DESC")
+    fun observeAgenda(start: Long, end: Long): Flow<List<ActionEntity>>
+    @Query("SELECT * FROM actions WHERE deletedAt IS NULL AND status = 'COMPLETED' ORDER BY COALESCE(completedAt, createdAt) DESC, id DESC")
+    fun historyPagingSource(): androidx.paging.PagingSource<Int, ActionEntity>
+
     @Query("SELECT * FROM actions WHERE deletedAt IS NULL ORDER BY createdAt DESC")
     fun observeAll(): Flow<List<ActionEntity>>
 

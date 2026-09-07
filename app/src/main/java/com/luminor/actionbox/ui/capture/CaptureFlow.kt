@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.capture
 
+import com.luminor.actionbox.R
 import android.content.ClipboardManager
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -28,6 +29,8 @@ private enum class CaptureVisualState { IDLE, RESULT }
 
 @Composable
 fun CaptureFlow(viewModel: CaptureViewModel, compact: Boolean) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val input by viewModel.input.collectAsStateWithLifecycle()
     val detected by viewModel.detected.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -37,7 +40,7 @@ fun CaptureFlow(viewModel: CaptureViewModel, compact: Boolean) {
         if (text != null) viewModel.setInput(text)
         val candidate = text ?: input
         if (candidate.isBlank()) {
-            viewModel.showMessage("Digite ou cole algo primeiro.")
+            viewModel.showMessage(textResources.getString(R.string.text_digite_ou_cole_algo_primeiro))
             return
         }
 

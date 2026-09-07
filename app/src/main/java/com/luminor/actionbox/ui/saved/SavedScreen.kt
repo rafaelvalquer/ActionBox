@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.saved
 
+import com.luminor.actionbox.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -37,7 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.saved.SavedViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.ExternalActions
 import com.luminor.actionbox.ui.designsystem.ActionBoxColors
@@ -50,18 +51,20 @@ import java.time.Duration
 import java.time.Instant
 
 @Composable
-fun SavedScreen(viewModel: ActionViewModel, onOpenDetail: (Long) -> Unit) {
+fun SavedScreen(viewModel: SavedViewModel, onOpenDetail: (Long) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val saved by viewModel.saved.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().widthIn(max = 920.dp).statusBarsPadding()) {
             Column(Modifier.padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Depois", style = MaterialTheme.typography.headlineLarge)
-                Text("Sua coleção de links e conteúdos para voltar com calma.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(textResources.getString(R.string.text_depois), style = MaterialTheme.typography.headlineLarge)
+                Text(textResources.getString(R.string.text_sua_colecao_de_links_e_conteudos_para_voltar_com_calma), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (saved.isEmpty()) {
-                ActionEmptyState("🔖", "Nada salvo", "Compartilhe um link com o ActionBox ou cole um link na tela inicial.")
+                ActionEmptyState("🔖", textResources.getString(R.string.text_nada_salvo), textResources.getString(R.string.text_compartilhe_um_link_com_o_actionbox_ou_cole_um_link_na_tela_inici))
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
@@ -76,7 +79,9 @@ fun SavedScreen(viewModel: ActionViewModel, onOpenDetail: (Long) -> Unit) {
 }
 
 @Composable
-private fun SavedSwipeCard(item: ActionEntity, viewModel: ActionViewModel, hapticsEnabled: Boolean, onOpen: () -> Unit) {
+private fun SavedSwipeCard(item: ActionEntity, viewModel: SavedViewModel, hapticsEnabled: Boolean, onOpen: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val dismissState = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
@@ -93,7 +98,7 @@ private fun SavedSwipeCard(item: ActionEntity, viewModel: ActionViewModel, hapti
         backgroundContent = {
             Row(Modifier.fillMaxSize().padding(horizontal = 22.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(ActionBoxIcons.Archive, contentDescription = null, tint = ActionBoxColors.Completed)
-                Text("  Arquivar", color = ActionBoxColors.Completed)
+                Text(textResources.getString(R.string.text_arquivar_223), color = ActionBoxColors.Completed)
             }
         }
     ) {
@@ -102,7 +107,9 @@ private fun SavedSwipeCard(item: ActionEntity, viewModel: ActionViewModel, hapti
 }
 
 @Composable
-private fun SavedCard(item: ActionEntity, viewModel: ActionViewModel, context: Context, onOpen: () -> Unit) {
+private fun SavedCard(item: ActionEntity, viewModel: SavedViewModel, context: Context, onOpen: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var menu by remember { mutableStateOf(false) }
     ActionCard(modifier = Modifier.actionSharedBounds(SharedKeys.saved(item.id)), onClick = onOpen) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -113,13 +120,13 @@ private fun SavedCard(item: ActionEntity, viewModel: ActionViewModel, context: C
                 Text(relativeSaved(item.createdAt), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Box {
-                IconButton(onClick = { menu = true }) { Icon(ActionBoxIcons.More, contentDescription = "Mais opções") }
+                IconButton(onClick = { menu = true }) { Icon(ActionBoxIcons.More, contentDescription = textResources.getString(R.string.text_mais_opcoes)) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Abrir") }, onClick = { menu = false; viewModel.openSaved(context, item.sourceUrl) }, leadingIcon = { Icon(ActionBoxIcons.Open, null) })
-                    DropdownMenuItem(text = { Text("Copiar link") }, onClick = { menu = false; item.sourceUrl?.let { ExternalActions.copy(context, "Link", it) } }, leadingIcon = { Icon(ActionBoxIcons.Copy, null) })
-                    DropdownMenuItem(text = { Text("Compartilhar") }, onClick = { menu = false; shareText(context, item.sourceUrl ?: item.content) }, leadingIcon = { Icon(ActionBoxIcons.Share, null) })
-                    DropdownMenuItem(text = { Text("Arquivar") }, onClick = { menu = false; viewModel.archive(item.id) }, leadingIcon = { Icon(ActionBoxIcons.Archive, null) })
-                    DropdownMenuItem(text = { Text("Excluir") }, onClick = { menu = false; viewModel.delete(item.id) }, leadingIcon = { Icon(ActionBoxIcons.Delete, null) })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_abrir)) }, onClick = { menu = false; viewModel.openSaved(context, item.sourceUrl) }, leadingIcon = { Icon(ActionBoxIcons.Open, null) })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_copiar_link)) }, onClick = { menu = false; item.sourceUrl?.let { ExternalActions.copy(context, textResources.getString(R.string.text_link), it) } }, leadingIcon = { Icon(ActionBoxIcons.Copy, null) })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_compartilhar)) }, onClick = { menu = false; shareText(context, item.sourceUrl ?: item.content) }, leadingIcon = { Icon(ActionBoxIcons.Share, null) })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_arquivar)) }, onClick = { menu = false; viewModel.archive(item.id) }, leadingIcon = { Icon(ActionBoxIcons.Archive, null) })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_excluir)) }, onClick = { menu = false; viewModel.delete(item.id) }, leadingIcon = { Icon(ActionBoxIcons.Delete, null) })
                 }
             }
         }
@@ -133,18 +140,20 @@ private fun categoryEmoji(category: String?) = when (category) {
     else -> "🔖"
 }
 
-private fun host(url: String?): String = runCatching { Uri.parse(url.orEmpty()).host?.removePrefix("www.") }.getOrNull().orEmpty().ifBlank { "Conteúdo salvo" }
+@Composable
+private fun host(url: String?): String = runCatching { Uri.parse(url.orEmpty()).host?.removePrefix("www.") }.getOrNull().orEmpty().ifBlank { androidx.compose.ui.res.stringResource(R.string.text_conteudo_salvo) }
 
+@Composable
 private fun relativeSaved(createdAt: Long): String {
     val days = Duration.between(Instant.ofEpochMilli(createdAt), Instant.now()).toDays()
     return when (days) {
-        0L -> "Salvo hoje"
-        1L -> "Salvo ontem"
-        else -> "Salvo há $days dias"
+        0L -> androidx.compose.ui.res.stringResource(R.string.text_salvo_hoje)
+        1L -> androidx.compose.ui.res.stringResource(R.string.text_salvo_ontem)
+        else -> androidx.compose.ui.res.stringResource(R.string.text_salvo_ha_dias , days)
     }
 }
 
 private fun shareText(context: Context, text: String) {
     val send = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
-    context.startActivity(Intent.createChooser(send, "Compartilhar").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    context.startActivity(Intent.createChooser(send, context.getString(R.string.text_compartilhar)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize.notes
 
+import com.luminor.actionbox.R
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,23 +10,26 @@ import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
 import kotlinx.coroutines.launch
 
-class NotesViewModel(application: Application) : AndroidViewModel(application) {
-    private val app = application as ActionBoxApplication
-    private val repository = app.repository
+@dagger.hilt.android.lifecycle.HiltViewModel
+class NotesViewModel @javax.inject.Inject constructor(
+    private val textResources: com.luminor.actionbox.ui.events.TextResources,
+    private val repository: com.luminor.actionbox.data.repository.ActionRepository,
+    private val uiEventBus: com.luminor.actionbox.ui.events.AppUiEventBus
+) : androidx.lifecycle.ViewModel() {
 
     fun createBlankNote() {
         viewModelScope.launch {
             repository.insert(
                 ActionEntity(
                     type = ActionType.NOTE.name,
-                    title = "Nova nota",
-                    content = "Nova nota",
-                    sourceText = "Nova nota",
+                    title = textResources.getString(R.string.text_nova_nota),
+                    content = textResources.getString(R.string.text_nova_nota),
+                    sourceText = textResources.getString(R.string.text_nova_nota),
                     status = ActionStatus.COMPLETED.name,
                     completedAt = System.currentTimeMillis()
                 )
             )
-            app.uiEventBus.message("Nota salva")
+            uiEventBus.message(R.string.text_nota_salva)
         }
     }
 }

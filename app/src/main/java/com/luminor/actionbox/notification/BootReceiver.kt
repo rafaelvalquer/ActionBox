@@ -11,17 +11,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+@dagger.hilt.android.AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
+    @javax.inject.Inject lateinit var repository: com.luminor.actionbox.data.repository.ActionRepository
+    @javax.inject.Inject lateinit var scheduler: ReminderScheduler
+    @javax.inject.Inject lateinit var scheduleReminder: com.luminor.actionbox.domain.reminder.ScheduleReminderUseCase
+    @javax.inject.Inject lateinit var dao: com.luminor.actionbox.data.local.ActionDao
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val repository = ActionRepository(ActionBoxDatabase.getInstance(context))
-                val scheduleReminder = ScheduleReminderUseCase(
-                    ReminderPlanner(),
-                    ReminderScheduler(context.applicationContext)
-                )
                 repository.pendingReminders().forEach(scheduleReminder::scheduleFuture)
             } finally {
                 pendingResult.finish()

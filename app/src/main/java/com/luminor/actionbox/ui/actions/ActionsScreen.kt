@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,7 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.actions.TaskListViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.ui.components.EmptyState
 import java.time.Instant
@@ -37,17 +38,17 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun ActionsScreen(viewModel: ActionViewModel) {
+fun ActionsScreen(viewModel: TaskListViewModel) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val pending by viewModel.pending.collectAsStateWithLifecycle()
-    val notes by viewModel.notes.collectAsStateWithLifecycle()
-    val history by viewModel.history.collectAsStateWithLifecycle()
     var tab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Pendentes", "Notas", "Histórico")
+    val tabs = listOf(textResources.getString(R.string.text_pendentes))
 
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Text("Ações", style = MaterialTheme.typography.headlineMedium)
-            Text("Tudo que ainda precisa de você.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(textResources.getString(R.string.text_acoes), style = MaterialTheme.typography.headlineMedium)
+            Text(textResources.getString(R.string.text_tudo_que_ainda_precisa_de_voce), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         TabRow(selectedTabIndex = tab) {
             tabs.forEachIndexed { index, text ->
@@ -55,9 +56,7 @@ fun ActionsScreen(viewModel: ActionViewModel) {
             }
         }
         when (tab) {
-            0 -> ActionList(pending, "✅", "Nada pendente", "Tarefas e lembretes aparecerão aqui.", viewModel, allowComplete = true)
-            1 -> ActionList(notes, "📝", "Nenhuma nota", "Salve uma informação como nota pela tela inicial.", viewModel)
-            else -> ActionList(history, "✨", "Histórico vazio", "As ações concluídas aparecerão aqui.", viewModel)
+            0 -> ActionList(pending, "✅", textResources.getString(R.string.text_nada_pendente), textResources.getString(R.string.text_tarefas_e_lembretes_aparecerao_aqui), viewModel, allowComplete = true)
         }
     }
 }
@@ -68,9 +67,11 @@ private fun ActionList(
     emoji: String,
     emptyTitle: String,
     emptyText: String,
-    viewModel: ActionViewModel,
+    viewModel: TaskListViewModel,
     allowComplete: Boolean = false
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     if (list.isEmpty()) {
         EmptyState(emoji, emptyTitle, emptyText)
         return
@@ -98,8 +99,8 @@ private fun ActionList(
                             Text(item.content, maxLines = 2, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    if (allowComplete) TextButton(onClick = { viewModel.complete(item.id) }) { Text("Concluir") }
-                    TextButton(onClick = { viewModel.delete(item.id) }) { Text("Excluir") }
+                    if (allowComplete) TextButton(onClick = { viewModel.complete(item.id) }) { Text(textResources.getString(R.string.text_concluir)) }
+                    TextButton(onClick = { viewModel.delete(item.id) }) { Text(textResources.getString(R.string.text_excluir)) }
                 }
             }
         }

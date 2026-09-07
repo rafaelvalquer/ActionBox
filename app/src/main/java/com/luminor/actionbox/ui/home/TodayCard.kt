@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.home
 
+import com.luminor.actionbox.R
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +44,8 @@ fun TodayActionRow(
     onToggle: () -> Unit,
     onOpen: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val haptic = LocalHapticFeedback.current
     val color = if (completed) ActionBoxColors.Completed else actionTypeColor(action.type)
     val time = action.scheduledAt?.let {
@@ -74,8 +77,8 @@ fun TodayActionRow(
                     textDecoration = if (completed) TextDecoration.LineThrough else null
                 )
                 val meta = buildList {
-                    if (RecurrenceCalculator.recurrenceType(action).name != "NONE") add("Recorrente")
-                    if (action.projectId != null) add("Projeto")
+                    if (RecurrenceCalculator.recurrenceType(action).name != "NONE") add(textResources.getString(R.string.text_recorrente))
+                    if (action.projectId != null) add(textResources.getString(R.string.text_projeto))
                 }.joinToString(" · ")
                 if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

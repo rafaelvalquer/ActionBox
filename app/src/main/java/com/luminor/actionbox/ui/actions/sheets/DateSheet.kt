@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions.sheets
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,8 @@ import java.time.temporal.TemporalAdjusters
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSheet(selected: LocalDate?, onDismiss: () -> Unit, onSelect: (LocalDate?) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var showPicker by remember { mutableStateOf(false) }
     val today = LocalDate.now()
     val pickerState = rememberDatePickerState(
@@ -36,13 +39,13 @@ fun DateSheet(selected: LocalDate?, onDismiss: () -> Unit, onSelect: (LocalDate?
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text("Data", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 10.dp))
+            Text(textResources.getString(R.string.text_data), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 10.dp))
             if (!showPicker) {
-                DateOption("Hoje") { onSelect(today); onDismiss() }
-                DateOption("Amanhã") { onSelect(today.plusDays(1)); onDismiss() }
-                DateOption("Fim de semana") { onSelect(today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))); onDismiss() }
-                DateOption("Escolher data") { showPicker = true }
-                DateOption("Sem data") { onSelect(null); onDismiss() }
+                DateOption(textResources.getString(R.string.text_hoje)) { onSelect(today); onDismiss() }
+                DateOption(textResources.getString(R.string.text_amanha)) { onSelect(today.plusDays(1)); onDismiss() }
+                DateOption(textResources.getString(R.string.text_fim_de_semana)) { onSelect(today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY))); onDismiss() }
+                DateOption(textResources.getString(R.string.text_escolher_data)) { showPicker = true }
+                DateOption(textResources.getString(R.string.text_sem_data)) { onSelect(null); onDismiss() }
             } else {
                 DatePicker(state = pickerState)
                 Button(
@@ -53,8 +56,8 @@ fun DateSheet(selected: LocalDate?, onDismiss: () -> Unit, onSelect: (LocalDate?
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Concluir") }
-                TextButton(onClick = { showPicker = false }, modifier = Modifier.fillMaxWidth()) { Text("Voltar") }
+                ) { Text(textResources.getString(R.string.text_concluir)) }
+                TextButton(onClick = { showPicker = false }, modifier = Modifier.fillMaxWidth()) { Text(textResources.getString(R.string.text_voltar)) }
             }
             androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 14.dp))
         }

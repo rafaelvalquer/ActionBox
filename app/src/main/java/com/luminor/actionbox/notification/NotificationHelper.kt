@@ -1,5 +1,6 @@
 package com.luminor.actionbox.notification
 
+import com.luminor.actionbox.R
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -20,10 +21,10 @@ object NotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Lembretes",
+                context.getString(R.string.text_lembretes),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Lembretes criados no ActionBox"
+                description = context.getString(R.string.text_lembretes_criados_no_actionbox)
             }
             context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
         }
@@ -63,13 +64,13 @@ object NotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
-            .setContentTitle("⏰ ActionBox")
+            .setContentTitle(context.getString(R.string.text_actionbox))
             .setContentText(title)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(openIntent)
-            .addAction(0, "Concluir", completeIntent)
-            .addAction(0, "+10 min", snoozeIntent)
+            .addAction(0, context.getString(R.string.text_concluir), completeIntent)
+            .addAction(0, context.getString(R.string.text_10_min_382), snoozeIntent)
             .build()
 
         NotificationManagerCompat.from(context).notify(id.toInt(), notification)

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions.sheets
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -21,21 +22,23 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesSheet(initial: String?, onDismiss: () -> Unit, onConfirm: (String?) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var text by remember(initial) { mutableStateOf(initial.orEmpty()) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
-            Text("Notas", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
+            Text(textResources.getString(R.string.text_notas), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp),
-                placeholder = { Text("Adicione detalhes, contexto ou observações...") },
+                placeholder = { Text(textResources.getString(R.string.text_adicione_detalhes_contexto_ou_observacoes)) },
                 minLines = 5
             )
             Button(
                 onClick = { onConfirm(text.trim().ifBlank { null }); onDismiss() },
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
-            ) { Text("Concluir") }
+            ) { Text(textResources.getString(R.string.text_concluir)) }
             androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp))
         }
     }

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize.notes
 
+import com.luminor.actionbox.R
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.organize.notes.NoteDetailViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import com.luminor.actionbox.domain.OrganizationOwnerType
 import com.luminor.actionbox.ui.motion.SharedKeys
@@ -45,7 +46,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun NoteDetailScreen(viewModel: ActionViewModel, note: ActionEntity, onBack: () -> Unit) {
+fun NoteDetailScreen(viewModel: NoteDetailViewModel, note: ActionEntity, onBack: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val context = LocalContext.current
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val actions by viewModel.all.collectAsStateWithLifecycle()
@@ -73,7 +76,7 @@ fun NoteDetailScreen(viewModel: ActionViewModel, note: ActionEntity, onBack: () 
             context,
             note,
             note.copy(
-                title = title.ifBlank { "Sem título" },
+                title = title.ifBlank { textResources.getString(R.string.text_sem_titulo) },
                 content = content,
                 noteCategory = category,
                 noteColor = color,
@@ -94,41 +97,41 @@ fun NoteDetailScreen(viewModel: ActionViewModel, note: ActionEntity, onBack: () 
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(Modifier.fillMaxWidth()) {
-                IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, contentDescription = "Voltar") }
+                IconButton(onClick = onBack) { Icon(Icons.Rounded.ArrowBack, contentDescription = textResources.getString(R.string.text_voltar)) }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = ::save) { Text("Salvar", color = MaterialTheme.colorScheme.primary) }
+                TextButton(onClick = ::save) { Text(textResources.getString(R.string.text_salvar), color = MaterialTheme.colorScheme.primary) }
                 IconButton(onClick = { pinned = !pinned }) {
                     Icon(
                         Icons.Rounded.PushPin,
-                        contentDescription = "Fixar",
+                        contentDescription = textResources.getString(R.string.text_fixar),
                         tint = if (pinned) noteAccent(color) else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = "Opções") }
+                IconButton(onClick = { menuOpen = true }) { Icon(Icons.Rounded.MoreVert, contentDescription = textResources.getString(R.string.text_opcoes)) }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(text = { Text("Salvar") }, onClick = { save(); menuOpen = false })
-                    DropdownMenuItem(text = { Text("Compartilhar") }, onClick = {
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_salvar)) }, onClick = { save(); menuOpen = false })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_compartilhar)) }, onClick = {
                         context.startActivity(
                             Intent.createChooser(
                                 Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
-                                    putExtra(Intent.EXTRA_TEXT, "$title\n\n$content")
+                                    putExtra(Intent.EXTRA_TEXT, textResources.getString(R.string.text_n_n , title, content))
                                 },
-                                "Compartilhar nota"
+                                textResources.getString(R.string.text_compartilhar_nota)
                             )
                         )
                         menuOpen = false
                     })
-                    DropdownMenuItem(text = { Text("Arquivar") }, onClick = { viewModel.archive(note.id); menuOpen = false; onBack() })
-                    DropdownMenuItem(text = { Text("Mover para lixeira") }, onClick = { viewModel.delete(note.id); menuOpen = false; onBack() })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_arquivar)) }, onClick = { viewModel.archive(note.id); menuOpen = false; onBack() })
+                    DropdownMenuItem(text = { Text(textResources.getString(R.string.text_mover_para_lixeira)) }, onClick = { viewModel.delete(note.id); menuOpen = false; onBack() })
                 }
             }
 
             Surface(onClick = { categoryOpen = true }, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)) {
-                Text(category ?: "Sem categoria", modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
+                Text(category ?: textResources.getString(R.string.text_sem_categoria), modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
             }
             DropdownMenu(expanded = categoryOpen, onDismissRequest = { categoryOpen = false }) {
-                DropdownMenuItem(text = { Text("Sem categoria") }, onClick = { category = null; categoryOpen = false })
+                DropdownMenuItem(text = { Text(textResources.getString(R.string.text_sem_categoria)) }, onClick = { category = null; categoryOpen = false })
                 DefaultNoteCategories.forEach { item ->
                     DropdownMenuItem(text = { Text(item) }, onClick = { category = item; categoryOpen = false })
                 }
@@ -152,7 +155,7 @@ fun NoteDetailScreen(viewModel: ActionViewModel, note: ActionEntity, onBack: () 
                     allTags.filter { it.id in selectedTagIds }.forEach { tag -> Text("#${tag.name}", color = MaterialTheme.colorScheme.primary) }
                 }
             }
-            TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) "+ Adicionar tags" else "Editar tags") }
+            TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) textResources.getString(R.string.text_adicionar_tags) else textResources.getString(R.string.text_editar_tags)) }
 
             NoteLinksSection(
                 noteId = note.id,
@@ -171,7 +174,7 @@ fun NoteDetailScreen(viewModel: ActionViewModel, note: ActionEntity, onBack: () 
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Surface(onClick = { save() }, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primary) {
-                Text("Salvar alterações", modifier = Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.onPrimary)
+                Text(textResources.getString(R.string.text_salvar_alteracoes), modifier = Modifier.fillMaxWidth().padding(14.dp), color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }

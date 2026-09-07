@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions.sheets
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,11 +29,13 @@ fun ActionTypeSheet(
     onDismiss: () -> Unit,
     onSelect: (ActionType) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Tipo da ação", style = MaterialTheme.typography.titleLarge)
+            Text(textResources.getString(R.string.text_tipo_da_acao), style = MaterialTheme.typography.titleLarge)
             if (!canConvert) {
-                Text("Este tipo possui estrutura própria e não pode ser convertido nesta versão.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(textResources.getString(R.string.text_este_tipo_possui_estrutura_propria_e_nao_pode_ser_convertido_nest), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TypeRow(current, selected = true, enabled = false, onClick = {})
             } else {
                 listOf(ActionType.TASK, ActionType.REMINDER, ActionType.EVENT).forEach { type ->
@@ -46,6 +49,8 @@ fun ActionTypeSheet(
 
 @Composable
 private fun TypeRow(type: ActionType, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val color = actionTypeColor(type.name)
     Row(
         modifier = Modifier.fillMaxWidth().then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 13.dp),
@@ -54,6 +59,6 @@ private fun TypeRow(type: ActionType, selected: Boolean, enabled: Boolean, onCli
     ) {
         Icon(ActionBoxIcons.forType(type.name), contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
         Text(type.label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        if (selected) Icon(ActionBoxIcons.Check, contentDescription = "Selecionado", tint = MaterialTheme.colorScheme.primary)
+        if (selected) Icon(ActionBoxIcons.Check, contentDescription = textResources.getString(R.string.text_selecionado), tint = MaterialTheme.colorScheme.primary)
     }
 }

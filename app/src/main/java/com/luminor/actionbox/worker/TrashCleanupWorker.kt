@@ -9,13 +9,14 @@ import androidx.work.WorkerParameters
 import com.luminor.actionbox.ActionBoxApplication
 import java.util.concurrent.TimeUnit
 
-class TrashCleanupWorker(
-    appContext: Context,
-    params: WorkerParameters
+@androidx.hilt.work.HiltWorker
+class TrashCleanupWorker @dagger.assisted.AssistedInject constructor(
+    @dagger.assisted.Assisted appContext: Context,
+    @dagger.assisted.Assisted params: WorkerParameters,
+    private val repository: com.luminor.actionbox.data.repository.ActionRepository
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result = runCatching {
-        val app = applicationContext as ActionBoxApplication
-        app.repository.purgeTrash(System.currentTimeMillis() - RETENTION_MILLIS)
+        repository.purgeTrash(System.currentTimeMillis() - RETENTION_MILLIS)
         Result.success()
     }.getOrElse { Result.retry() }
 

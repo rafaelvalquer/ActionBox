@@ -13,6 +13,27 @@ import com.luminor.actionbox.data.local.TagEntity
 import com.luminor.actionbox.data.local.TagRefEntity
 
 class ActionRepository(private val database: ActionBoxDatabase) {
+
+    suspend fun <T> transaction(block: suspend () -> T): T = database.withTransaction { block() }
+    suspend fun activeActions() = dao.getActiveActions()
+    suspend fun projectActions(id: Long) = dao.getProjectActions(id)
+    suspend fun listAgendaActions(id: Long) = dao.getListAgendaActions(id.toString())
+    suspend fun isCompletedOn(id: Long, date: String) = dao.isCompletedOn(id, date)
+    fun observeAction(id: Long) = dao.observeAction(id)
+    fun observeProject(id: Long) = dao.observeProject(id)
+    fun observeList(id: Long) = dao.observeList(id)
+    fun observeProjectActions(id: Long) = dao.observeProjectActions(id)
+    fun observeAllProjectActions() = dao.observeAllProjectActions()
+    fun observeItems(id: Long) = dao.observeItems(id)
+    fun observeOwnerTagRefs(type: String, id: Long) = dao.observeOwnerTagRefs(type, id)
+    fun observeOwnerLinks(type: String, id: Long) = dao.observeOwnerLinks(type, id)
+    fun observeActionCompletions(id: Long) = dao.observeActionCompletions(id)
+    fun observePeriodCompletions(start: String, end: String) = dao.observePeriodCompletions(start, end)
+    fun observeActionRules(id: Long) = dao.observeActionRules(id)
+    fun observeRoutines() = dao.observeRoutines()
+    fun observeAgenda(start: Long, end: Long) = dao.observeAgenda(start, end)
+    fun historyPagingSource() = dao.historyPagingSource()
+
     private val dao = database.actionDao()
 
     val all = dao.observeAll()

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.search
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +39,8 @@ fun GlobalSearchScreen(
     onOpenList: (Long) -> Unit,
     onOpenSaved: (Long) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val query by viewModel.query.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
@@ -55,8 +58,8 @@ fun GlobalSearchScreen(
                 Modifier.fillMaxWidth().padding(top = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
-                Text("Buscar", style = MaterialTheme.typography.headlineMedium)
+                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
+                Text(textResources.getString(R.string.text_buscar), style = MaterialTheme.typography.headlineMedium)
             }
         }
         item {
@@ -65,8 +68,8 @@ fun GlobalSearchScreen(
                 onValueChange = viewModel::setQuery,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Buscar no ActionBox") },
-                placeholder = { Text("Tarefa, projeto, nota, lista ou link") },
+                label = { Text(textResources.getString(R.string.text_buscar_no_actionbox)) },
+                placeholder = { Text(textResources.getString(R.string.text_tarefa_projeto_nota_lista_ou_link)) },
                 leadingIcon = { Text("🔍") }
             )
         }
@@ -76,7 +79,7 @@ fun GlobalSearchScreen(
                     FilterChip(
                         selected = item == filter,
                         onClick = { viewModel.setFilter(item) },
-                        label = { Text(item.label) }
+                        label = { Text(textResources.getString(item.label)) }
                     )
                 }
             }
@@ -85,14 +88,14 @@ fun GlobalSearchScreen(
         when {
             query.isBlank() -> item {
                 SearchEmpty(
-                    title = "Busque qualquer coisa",
-                    description = "A pesquisa encontra tarefas, projetos, notas, listas, itens salvos e também suas tags."
+                    title = textResources.getString(R.string.text_busque_qualquer_coisa),
+                    description = textResources.getString(R.string.text_a_pesquisa_encontra_tarefas_projetos_notas_listas_itens_salvos_e_)
                 )
             }
             results.isEmpty() -> item {
                 SearchEmpty(
-                    title = "Nada encontrado",
-                    description = "Tente outro termo ou selecione Tudo para ampliar a busca."
+                    title = textResources.getString(R.string.text_nada_encontrado),
+                    description = textResources.getString(R.string.text_tente_outro_termo_ou_selecione_tudo_para_ampliar_a_busca)
                 )
             }
             else -> {
@@ -100,7 +103,7 @@ fun GlobalSearchScreen(
                 SearchResultKind.entries.forEach { kind ->
                     val kindResults = grouped[kind].orEmpty()
                     if (kindResults.isNotEmpty()) {
-                        item(key = "header-${kind.name}") {
+                        item(key = textResources.getString(R.string.text_header , kind.name)) {
                             Text("${kind.emoji} ${kind.label.uppercase()}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         items(kindResults, key = { "${it.kind.name}-${it.id}" }) { result ->

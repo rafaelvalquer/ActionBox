@@ -11,8 +11,9 @@ import com.luminor.actionbox.navigation.ActionBoxRoot
 import com.luminor.actionbox.ui.capture.CaptureViewModel
 import com.luminor.actionbox.ui.designsystem.ActionBoxTheme
 
+@dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val viewModel: ActionViewModel by viewModels()
+    private val viewModel: com.luminor.actionbox.ui.RootViewModel by viewModels()
     private val captureViewModel: CaptureViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {

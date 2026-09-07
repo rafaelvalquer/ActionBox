@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize.notes
 
+import com.luminor.actionbox.R
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,19 +35,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
-import com.luminor.actionbox.ActionViewModel
 import com.luminor.actionbox.data.local.ActionEntity
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-private enum class NoteSort(val label: String) { RECENT("Mais recentes"), OLDEST("Mais antigas"), TITLE("Título A-Z"), CATEGORY("Categoria"), COLOR("Cor") }
+private enum class NoteSort(val label: Int) { RECENT(R.string.text_mais_recentes), OLDEST(R.string.text_mais_antigas), TITLE(R.string.text_titulo_a_z), CATEGORY(R.string.text_categoria), COLOR(R.string.text_cor) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (Long) -> Unit) {
+fun NotesBoard(notes: List<ActionEntity>, onUpdate: (android.content.Context, ActionEntity, ActionEntity) -> Unit, onArchive: (Long) -> Unit, onDelete: (Long) -> Unit, onCreate: () -> Unit, onOpen: (Long) -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val context = LocalContext.current
-    val notesViewModel = composeViewModel<NotesViewModel>()
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf("Todas") }
     var sort by remember { mutableStateOf(NoteSort.RECENT) }
@@ -89,26 +90,26 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Notas", style = MaterialTheme.typography.headlineSmall)
-                Text("Todas as notas · ${notes.size}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(textResources.getString(R.string.text_notas), style = MaterialTheme.typography.headlineSmall)
+                Text(textResources.getString(R.string.text_todas_as_notas , notes.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = { searchVisible = !searchVisible }) { Icon(Icons.Rounded.Search, contentDescription = "Buscar notas") }
+            IconButton(onClick = { searchVisible = !searchVisible }) { Icon(Icons.Rounded.Search, contentDescription = textResources.getString(R.string.text_buscar_notas)) }
             Surface(onClick = {
                 waitingForNewNote = true
-                notesViewModel.createBlankNote()
+                onCreate()
             }, shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer) {
                 Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Add, contentDescription = null)
-                    Text("Nova")
+                    Text(textResources.getString(R.string.text_nova))
                 }
             }
         }
-        if (searchVisible) OutlinedTextField(value = query, onValueChange = { query = it }, label = { Text("Buscar notas") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+        if (searchVisible) OutlinedTextField(value = query, onValueChange = { query = it }, label = { Text(textResources.getString(R.string.text_buscar_notas)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Row(Modifier.weight(1f)) { NoteCategoryFilter(filter, onSelected = { filter = it }) }
             IconButton(onClick = { sortOpen = true }) { Text("⋮") }
             DropdownMenu(expanded = sortOpen, onDismissRequest = { sortOpen = false }) {
-                NoteSort.entries.forEach { option -> DropdownMenuItem(text = { Text(option.label) }, onClick = { sort = option; sortOpen = false }) }
+                NoteSort.entries.forEach { option -> DropdownMenuItem(text = { Text(textResources.getString(option.label)) }, onClick = { sort = option; sortOpen = false }) }
             }
         }
 
@@ -119,46 +120,46 @@ fun NotesBoard(notes: List<ActionEntity>, viewModel: ActionViewModel, onOpen: (L
             modifier = Modifier.fillMaxSize()
         ) {
             if (pinned.isNotEmpty()) {
-                item(span = StaggeredGridItemSpan.FullLine) { Text("📌 FIXADAS · ${pinned.size}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
-                items(pinned, key = { "p-${it.id}" }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
+                item(span = StaggeredGridItemSpan.FullLine) { Text(textResources.getString(R.string.text_fixadas , pinned.size), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
+                items(pinned, key = { textResources.getString(R.string.text_p , it.id) }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
             }
             if (todayNotes.isNotEmpty()) {
-                item(span = StaggeredGridItemSpan.FullLine) { Text("HOJE · ${todayNotes.size}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
-                items(todayNotes, key = { "t-${it.id}" }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
+                item(span = StaggeredGridItemSpan.FullLine) { Text(textResources.getString(R.string.text_hoje_297 , todayNotes.size), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
+                items(todayNotes, key = { textResources.getString(R.string.text_t , it.id) }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
             }
             if (yesterdayNotes.isNotEmpty()) {
-                item(span = StaggeredGridItemSpan.FullLine) { Text("ONTEM · ${yesterdayNotes.size}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
-                items(yesterdayNotes, key = { "y-${it.id}" }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
+                item(span = StaggeredGridItemSpan.FullLine) { Text(textResources.getString(R.string.text_ontem , yesterdayNotes.size), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
+                items(yesterdayNotes, key = { textResources.getString(R.string.text_y , it.id) }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
             }
             if (older.isNotEmpty()) {
-                item(span = StaggeredGridItemSpan.FullLine) { Text("ANTERIORES · ${older.size}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
-                items(older, key = { "o-${it.id}" }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
+                item(span = StaggeredGridItemSpan.FullLine) { Text(textResources.getString(R.string.text_anteriores , older.size), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)) }
+                items(older, key = { textResources.getString(R.string.text_o , it.id) }) { note -> NoteCard(note, onClick = { onOpen(note.id) }, onMenu = { menuNote = note }) }
             }
-            if (sorted.isEmpty()) item(span = StaggeredGridItemSpan.FullLine) { Text("Nenhuma nota encontrada.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            if (sorted.isEmpty()) item(span = StaggeredGridItemSpan.FullLine) { Text(textResources.getString(R.string.text_nenhuma_nota_encontrada), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 
     menuNote?.let { note ->
         androidx.compose.material3.ModalBottomSheet(onDismissRequest = { menuNote = null }) {
             Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                DropdownMenuItem(text = { Text(if (note.isPinned) "Desafixar" else "Fixar") }, onClick = {
-                    viewModel.updateAction(context, note, note.copy(isPinned = !note.isPinned, updatedAt = System.currentTimeMillis())); menuNote = null
+                DropdownMenuItem(text = { Text(if (note.isPinned) textResources.getString(R.string.text_desafixar) else textResources.getString(R.string.text_fixar)) }, onClick = {
+                    onUpdate(context, note, note.copy(isPinned = !note.isPinned, updatedAt = System.currentTimeMillis())); menuNote = null
                 })
-                DropdownMenuItem(text = { Text("Alterar cor") }, onClick = {
+                DropdownMenuItem(text = { Text(textResources.getString(R.string.text_alterar_cor)) }, onClick = {
                     val current = NotePalette.indexOfFirst { it.key == note.noteColor }.let { if (it < 0) 0 else it }
                     val next = NotePalette[(current + 1) % NotePalette.size].key
-                    viewModel.updateAction(context, note, note.copy(noteColor = next, updatedAt = System.currentTimeMillis())); menuNote = null
+                    onUpdate(context, note, note.copy(noteColor = next, updatedAt = System.currentTimeMillis())); menuNote = null
                 })
-                DropdownMenuItem(text = { Text("Alterar categoria") }, onClick = {
+                DropdownMenuItem(text = { Text(textResources.getString(R.string.text_alterar_categoria)) }, onClick = {
                     val current = DefaultNoteCategories.indexOf(note.noteCategory)
                     val next = DefaultNoteCategories[(current + 1).coerceAtLeast(0) % DefaultNoteCategories.size]
-                    viewModel.updateAction(context, note, note.copy(noteCategory = next, updatedAt = System.currentTimeMillis())); menuNote = null
+                    onUpdate(context, note, note.copy(noteCategory = next, updatedAt = System.currentTimeMillis())); menuNote = null
                 })
-                DropdownMenuItem(text = { Text("Compartilhar") }, onClick = {
-                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${note.title}\n\n${note.content}") }, "Compartilhar nota")); menuNote = null
+                DropdownMenuItem(text = { Text(textResources.getString(R.string.text_compartilhar)) }, onClick = {
+                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, textResources.getString(R.string.text_n_n , note.title, note.content)) }, textResources.getString(R.string.text_compartilhar_nota))); menuNote = null
                 })
-                DropdownMenuItem(text = { Text("Arquivar") }, onClick = { viewModel.archive(note.id); menuNote = null })
-                DropdownMenuItem(text = { Text("Excluir") }, onClick = { viewModel.delete(note.id); menuNote = null })
+                DropdownMenuItem(text = { Text(textResources.getString(R.string.text_arquivar)) }, onClick = { onArchive(note.id); menuNote = null })
+                DropdownMenuItem(text = { Text(textResources.getString(R.string.text_excluir)) }, onClick = { onDelete(note.id); menuNote = null })
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.home
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.home.HomeViewModel
 import com.luminor.actionbox.domain.ActionStatus
 import com.luminor.actionbox.domain.ActionType
 import com.luminor.actionbox.domain.RecurrenceCalculator
@@ -40,26 +41,31 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    viewModel: ActionViewModel,
+    viewModel: HomeViewModel,
     captureViewModel: CaptureViewModel,
+    onHistory: () -> Unit,
     onSettings: () -> Unit,
     onActionOpen: (Long) -> Unit,
     onSearch: () -> Unit = {}
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val all by viewModel.all.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val completions by viewModel.completions.collectAsStateWithLifecycle()
+    val rules by viewModel.routineRules.collectAsStateWithLifecycle()
     val today = LocalDate.now()
     val todayActions = all
         .filter { it.type in setOf(ActionType.TASK.name, ActionType.REMINDER.name, ActionType.EVENT.name, ActionType.LIST.name) }
-        .filter { RecurrenceCalculator.occursOn(it, today) }
+        .filter { com.luminor.actionbox.domain.routine.RoutineEvaluation.routineOccursOn(it, today, rules) }
         .sortedBy { it.scheduledAt ?: Long.MAX_VALUE }
-    val completed = todayActions.count { viewModel.isCompletedOn(it, today) }
+    val completed = todayActions.count { com.luminor.actionbox.domain.routine.RoutineEvaluation.isCompletedOn(it, today, completions) }
     val pending = todayActions.size - completed
     val undated = all.count { it.type == ActionType.TASK.name && it.scheduledAt == null && it.status == ActionStatus.PENDING.name }
     val greeting = when (LocalTime.now().hour) {
-        in 5..11 -> "Bom dia"
-        in 12..17 -> "Boa tarde"
-        else -> "Boa noite"
+        in 5..11 -> textResources.getString(R.string.text_bom_dia)
+        in 12..17 -> textResources.getString(R.string.text_boa_tarde)
+        else -> textResources.getString(R.string.text_boa_noite)
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -78,16 +84,17 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("ActionBox", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    IconButton(onClick = onSearch) { Icon(Icons.Rounded.Search, contentDescription = "Buscar") }
-                    IconButton(onClick = onSettings) { Icon(ActionBoxIcons.Settings, contentDescription = "Ajustes") }
+                    Text(textResources.getString(R.string.app_name), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                    androidx.compose.material3.TextButton(onClick = onHistory) { Text(textResources.getString(R.string.text_historico)) }
+                    IconButton(onClick = onSearch) { Icon(Icons.Rounded.Search, contentDescription = textResources.getString(R.string.text_buscar)) }
+                    IconButton(onClick = onSettings) { Icon(ActionBoxIcons.Settings, contentDescription = textResources.getString(R.string.text_ajustes)) }
                 }
             }
 
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("$greeting 👋", style = MaterialTheme.typography.headlineLarge)
-                    Text("O que precisa sair da sua cabeça?", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_o_que_precisa_sair_da_sua_cabeca), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -100,7 +107,7 @@ fun HomeScreen(
                         style = MaterialTheme.typography.titleLarge
                     )
                     Text(
-                        "$pending pendentes · $completed concluída${if (completed == 1) "" else "s"} · $undated sem data",
+                        textResources.getString(R.string.text_pendentes_concluida_sem_data , pending, completed, if (completed == 1) "" else "s", undated),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -108,13 +115,13 @@ fun HomeScreen(
             }
 
             if (todayActions.isEmpty()) {
-                item { ActionEmptyState("✨", "Dia livre", "Quando algo tiver data ou recorrência, aparecerá aqui.") }
+                item { ActionEmptyState("✨", textResources.getString(R.string.text_dia_livre), textResources.getString(R.string.text_quando_algo_tiver_data_ou_recorrencia_aparecera_aqui)) }
             } else {
                 items(todayActions, key = { it.id }) { action ->
                     TodayActionRow(
                         action = action,
                         date = today,
-                        completed = viewModel.isCompletedOn(action, today),
+                        completed = com.luminor.actionbox.domain.routine.RoutineEvaluation.isCompletedOn(action, today, completions),
                         hapticsEnabled = settings.hapticsEnabled,
                         onToggle = { viewModel.toggleOccurrence(action, today) },
                         onOpen = { onActionOpen(action.id) }

@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions.sheets
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,8 @@ fun TimeReminderSheet(
     onDismiss: () -> Unit,
     onConfirm: (LocalTime?, Int?) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var selectedTime by remember(initialTime) { mutableStateOf(initialTime) }
     var selectedReminder by remember(initialReminder) { mutableStateOf(initialReminder) }
     var showPicker by remember { mutableStateOf(false) }
@@ -45,7 +48,7 @@ fun TimeReminderSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Hora", style = MaterialTheme.typography.titleLarge)
+            Text(textResources.getString(R.string.text_hora), style = MaterialTheme.typography.titleLarge)
             if (!showPicker) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(9, 10, 14, 19).forEach { hour ->
@@ -53,29 +56,29 @@ fun TimeReminderSheet(
                         FilterChip(
                             selected = selectedTime == value,
                             onClick = { selectedTime = value },
-                            label = { Text("%02d:00".format(hour)) },
+                            label = { Text(textResources.getString(R.string.text_02d_00).format(hour)) },
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
-                TextButton(onClick = { showPicker = true }) { Text("Escolher horário") }
-                TextButton(onClick = { selectedTime = null }) { Text("Sem horário") }
+                TextButton(onClick = { showPicker = true }) { Text(textResources.getString(R.string.text_escolher_horario)) }
+                TextButton(onClick = { selectedTime = null }) { Text(textResources.getString(R.string.text_sem_horario)) }
             } else {
                 TimePicker(state = pickerState, modifier = Modifier.align(Alignment.CenterHorizontally))
                 TextButton(onClick = {
                     selectedTime = LocalTime.of(pickerState.hour, pickerState.minute)
                     showPicker = false
-                }, modifier = Modifier.align(Alignment.End)) { Text("Usar horário") }
+                }, modifier = Modifier.align(Alignment.End)) { Text(textResources.getString(R.string.text_usar_horario)) }
             }
 
-            Text("Lembrete", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
+            Text(textResources.getString(R.string.text_lembrete), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
             listOf(
-                null to "Sem lembrete",
-                0 to "Na hora",
-                10 to "10 min antes",
-                30 to "30 min antes",
-                60 to "1 hora antes",
-                1440 to "1 dia antes"
+                null to textResources.getString(R.string.text_sem_lembrete_327),
+                0 to textResources.getString(R.string.text_na_hora),
+                10 to textResources.getString(R.string.text_10_min_antes),
+                30 to textResources.getString(R.string.text_30_min_antes),
+                60 to textResources.getString(R.string.text_1_hora_antes),
+                1440 to textResources.getString(R.string.text_1_dia_antes)
             ).forEach { (minutes, label) ->
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { selectedReminder = minutes }.padding(vertical = 7.dp),
@@ -86,7 +89,7 @@ fun TimeReminderSheet(
                 }
             }
 
-            Button(onClick = { onConfirm(selectedTime, selectedReminder); onDismiss() }, modifier = Modifier.fillMaxWidth()) { Text("Concluir") }
+            Button(onClick = { onConfirm(selectedTime, selectedReminder); onDismiss() }, modifier = Modifier.fillMaxWidth()) { Text(textResources.getString(R.string.text_concluir)) }
             androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp))
         }
     }

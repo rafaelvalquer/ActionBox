@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.organize.lists
 
+import com.luminor.actionbox.R
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.luminor.actionbox.ActionViewModel
+import com.luminor.actionbox.ui.organize.lists.ListViewModel
 import com.luminor.actionbox.domain.OrganizationOwnerType
 import com.luminor.actionbox.ui.components.ReorderHandle
 import com.luminor.actionbox.ui.components.moved
@@ -50,10 +51,12 @@ import com.luminor.actionbox.ui.tags.TagPickerBottomSheet
 
 @Composable
 fun ListDetailScreen(
-    viewModel: ActionViewModel,
+    viewModel: ListViewModel,
     listId: Long,
     onBack: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val lists by viewModel.lists.collectAsStateWithLifecycle()
     val allItems by viewModel.listItems.collectAsStateWithLifecycle()
     val allTags by viewModel.tags.collectAsStateWithLifecycle()
@@ -107,14 +110,14 @@ fun ListDetailScreen(
                 Modifier.fillMaxWidth().padding(top = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = ::requestBack) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
-                Text("Lista", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                IconButton(onClick = ::requestBack) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
+                Text(textResources.getString(R.string.text_lista), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 if (editing) {
-                    TextButton(onClick = { if (editState.hasChanges) discardDialog = true else leaveEditing() }) { Text("Cancelar") }
+                    TextButton(onClick = { if (editState.hasChanges) discardDialog = true else leaveEditing() }) { Text(textResources.getString(R.string.text_cancelar)) }
                 } else {
                     TextButton(onClick = ::beginEditing) {
                         Icon(Icons.Rounded.Edit, contentDescription = null)
-                        Text("Editar")
+                        Text(textResources.getString(R.string.text_editar))
                     }
                 }
             }
@@ -127,12 +130,12 @@ fun ListDetailScreen(
                     onValueChange = { editState = editState.copy(title = it) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    label = { Text("Título da lista") }
+                    label = { Text(textResources.getString(R.string.text_titulo_da_lista)) }
                 )
             }
             item {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Itens", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Text(textResources.getString(R.string.text_itens), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                     Text("${editState.items.size}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -140,7 +143,7 @@ fun ListDetailScreen(
                 count = editState.items.size,
                 key = { index ->
                     val item = editState.items[index]
-                    if (item.id == 0L) "new-$index-${item.title}" else "item-${item.id}"
+                    if (item.id == 0L) textResources.getString(R.string.text_new , index, item.title) else textResources.getString(R.string.text_item , item.id)
                 }
             ) { index ->
                 val draft = editState.items[index]
@@ -167,7 +170,7 @@ fun ListDetailScreen(
                         IconButton(onClick = {
                             editState = editState.copy(items = editState.items.toMutableList().also { it.removeAt(index) })
                         }) {
-                            Icon(Icons.Rounded.DeleteOutline, contentDescription = "Remover item", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Rounded.DeleteOutline, contentDescription = textResources.getString(R.string.text_remover_item), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -181,7 +184,7 @@ fun ListDetailScreen(
                         OutlinedTextField(
                             value = newItemText,
                             onValueChange = { newItemText = it },
-                            label = { Text("Novo item") },
+                            label = { Text(textResources.getString(R.string.text_novo_item)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
@@ -196,7 +199,7 @@ fun ListDetailScreen(
                                 }
                             },
                             enabled = newItemText.isNotBlank()
-                        ) { Icon(Icons.Rounded.Add, contentDescription = "Adicionar item") }
+                        ) { Icon(Icons.Rounded.Add, contentDescription = textResources.getString(R.string.text_adicionar_item)) }
                     }
                 }
             }
@@ -205,7 +208,7 @@ fun ListDetailScreen(
                     OutlinedButton(
                         onClick = { if (editState.hasChanges) discardDialog = true else leaveEditing() },
                         modifier = Modifier.weight(1f)
-                    ) { Text("Cancelar") }
+                    ) { Text(textResources.getString(R.string.text_cancelar)) }
                     Button(
                         onClick = {
                             val originalIds = listItems.map { it.id }.toSet()
@@ -221,7 +224,7 @@ fun ListDetailScreen(
                         },
                         enabled = editState.title.trim().isNotBlank() && editState.items.all { it.title.trim().isNotBlank() } && editState.hasChanges,
                         modifier = Modifier.weight(1f)
-                    ) { Text("Salvar") }
+                    ) { Text(textResources.getString(R.string.text_salvar)) }
                 }
             }
         } else {
@@ -232,7 +235,7 @@ fun ListDetailScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         textDecoration = if (list.completedAt != null) TextDecoration.LineThrough else null
                     )
-                    Text("$done de ${listItems.size} concluídos", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_de_concluidos , done, listItems.size), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (listItems.isNotEmpty()) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 }
             }
@@ -243,9 +246,9 @@ fun ListDetailScreen(
                     }
                 }
             }
-            item { TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) "+ Adicionar tags" else "Editar tags") } }
+            item { TextButton(onClick = { tagsOpen = true }) { Text(if (selectedTagIds.isEmpty()) textResources.getString(R.string.text_adicionar_tags) else textResources.getString(R.string.text_editar_tags)) } }
             if (listItems.isEmpty()) {
-                item { Text("Nenhum item. Toque em Editar para adicionar.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item { Text(textResources.getString(R.string.text_nenhum_item_toque_em_editar_para_adicionar), color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
                 items(listItems, key = { it.id }) { listItem ->
                     ActionCard {
@@ -262,15 +265,15 @@ fun ListDetailScreen(
             }
             item {
                 when {
-                    listItems.isNotEmpty() && done == listItems.size && list.completedAt == null -> ActionButton("Finalizar lista", onClick = { viewModel.finishList(list.id) })
-                    list.completedAt != null -> ActionButton("Reabrir lista", onClick = { viewModel.reopenList(list.id) }, primary = false)
+                    listItems.isNotEmpty() && done == listItems.size && list.completedAt == null -> ActionButton(textResources.getString(R.string.text_finalizar_lista), onClick = { viewModel.finishList(list.id) })
+                    list.completedAt != null -> ActionButton(textResources.getString(R.string.text_reabrir_lista), onClick = { viewModel.reopenList(list.id) }, primary = false)
                 }
             }
             item {
                 HorizontalDivider()
                 TextButton(onClick = { deleteDialog = true }, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                    Text("Mover lista para a lixeira", color = MaterialTheme.colorScheme.error)
+                    Text(textResources.getString(R.string.text_mover_lista_para_a_lixeira), color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(28.dp))
             }
@@ -296,22 +299,22 @@ fun ListDetailScreen(
     if (discardDialog) {
         AlertDialog(
             onDismissRequest = { discardDialog = false },
-            title = { Text("Descartar alterações?") },
-            text = { Text("As alterações da lista não serão salvas.") },
-            dismissButton = { TextButton(onClick = { discardDialog = false }) { Text("Continuar editando") } },
-            confirmButton = { TextButton(onClick = { discardDialog = false; leaveEditing() }) { Text("Descartar") } }
+            title = { Text(textResources.getString(R.string.text_descartar_alteracoes)) },
+            text = { Text(textResources.getString(R.string.text_as_alteracoes_da_lista_nao_serao_salvas)) },
+            dismissButton = { TextButton(onClick = { discardDialog = false }) { Text(textResources.getString(R.string.text_continuar_editando)) } },
+            confirmButton = { TextButton(onClick = { discardDialog = false; leaveEditing() }) { Text(textResources.getString(R.string.text_descartar)) } }
         )
     }
 
     if (deleteDialog) {
         AlertDialog(
             onDismissRequest = { deleteDialog = false },
-            title = { Text("Mover lista para a lixeira?") },
-            text = { Text("A lista poderá ser restaurada durante 30 dias.") },
-            dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text("Cancelar") } },
+            title = { Text(textResources.getString(R.string.text_mover_lista_para_a_lixeira_283)) },
+            text = { Text(textResources.getString(R.string.text_a_lista_podera_ser_restaurada_durante_30_dias)) },
+            dismissButton = { TextButton(onClick = { deleteDialog = false }) { Text(textResources.getString(R.string.text_cancelar)) } },
             confirmButton = {
                 TextButton(onClick = { deleteDialog = false; viewModel.deleteList(list.id); onBack() }) {
-                    Text("Mover", color = MaterialTheme.colorScheme.error)
+                    Text(textResources.getString(R.string.text_mover), color = MaterialTheme.colorScheme.error)
                 }
             }
         )

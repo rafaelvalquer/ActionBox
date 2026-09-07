@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.trash
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,8 @@ private data class PendingPermanentDelete(val kind: TrashKind, val id: Long, val
 
 @Composable
 fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     val deletedActions by viewModel.actions.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val lists by viewModel.lists.collectAsStateWithLifecycle()
@@ -58,10 +61,10 @@ fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
     ) {
         item {
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = "Voltar") }
+                IconButton(onClick = onBack) { Icon(ActionBoxIcons.Back, contentDescription = textResources.getString(R.string.text_voltar)) }
                 Column(Modifier.weight(1f)) {
-                    Text("Lixeira", style = MaterialTheme.typography.headlineMedium)
-                    Text("Itens são apagados definitivamente após 30 dias.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_lixeira), style = MaterialTheme.typography.headlineMedium)
+                    Text(textResources.getString(R.string.text_itens_sao_apagados_definitivamente_apos_30_dias), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -74,15 +77,15 @@ fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text("🗑️", style = MaterialTheme.typography.headlineLarge)
-                    Text("Lixeira vazia", style = MaterialTheme.typography.titleLarge)
-                    Text("Itens excluídos aparecerão aqui durante 30 dias.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(textResources.getString(R.string.text_lixeira_vazia), style = MaterialTheme.typography.titleLarge)
+                    Text(textResources.getString(R.string.text_itens_excluidos_aparecerao_aqui_durante_30_dias), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
 
         if (projects.isNotEmpty()) {
             item { SectionTitle("PROJETOS") }
-            items(projects, key = { "project-${it.id}" }) { project ->
+            items(projects, key = { textResources.getString(R.string.text_project , it.id) }) { project ->
                 TrashCard(
                     emoji = "📁",
                     title = project.title,
@@ -95,7 +98,7 @@ fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
 
         if (lists.isNotEmpty()) {
             item { SectionTitle("LISTAS") }
-            items(lists, key = { "list-${it.id}" }) { list ->
+            items(lists, key = { textResources.getString(R.string.text_list , it.id) }) { list ->
                 TrashCard(
                     emoji = "☑️",
                     title = list.title,
@@ -108,7 +111,7 @@ fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
 
         if (actions.isNotEmpty()) {
             item { SectionTitle("ITENS") }
-            items(actions, key = { "action-${it.id}" }) { action ->
+            items(actions, key = { textResources.getString(R.string.text_action , it.id) }) { action ->
                 TrashCard(
                     emoji = actionEmoji(action),
                     title = action.title,
@@ -125,9 +128,9 @@ fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
     permanentDelete?.let { pending ->
         AlertDialog(
             onDismissRequest = { permanentDelete = null },
-            title = { Text("Excluir definitivamente?") },
-            text = { Text("“${pending.title}” não poderá ser restaurado depois desta ação.") },
-            dismissButton = { TextButton(onClick = { permanentDelete = null }) { Text("Cancelar") } },
+            title = { Text(textResources.getString(R.string.text_excluir_definitivamente)) },
+            text = { Text(textResources.getString(R.string.text_nao_podera_ser_restaurado_depois_desta_acao , pending.title)) },
+            dismissButton = { TextButton(onClick = { permanentDelete = null }) { Text(textResources.getString(R.string.text_cancelar)) } },
             confirmButton = {
                 TextButton(onClick = {
                     when (pending.kind) {
@@ -136,7 +139,7 @@ fun TrashScreen(viewModel: TrashViewModel, onBack: () -> Unit) {
                         TrashKind.LIST -> viewModel.permanentlyDeleteList(pending.id)
                     }
                     permanentDelete = null
-                }) { Text("Excluir definitivamente", color = MaterialTheme.colorScheme.error) }
+                }) { Text(textResources.getString(R.string.text_excluir_definitivamente_272), color = MaterialTheme.colorScheme.error) }
             }
         )
     }
@@ -155,18 +158,20 @@ private fun TrashCard(
     onRestore: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     ActionCard {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(emoji, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(end = 10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(title.ifBlank { "Sem título" }, style = MaterialTheme.typography.titleMedium)
+                    Text(title.ifBlank { textResources.getString(R.string.text_sem_titulo) }, style = MaterialTheme.typography.titleMedium)
                     Text(deletedLabel(deletedAt), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onRestore) { Text("Restaurar") }
-                TextButton(onClick = onDelete) { Text("Excluir", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = onRestore) { Text(textResources.getString(R.string.text_restaurar)) }
+                TextButton(onClick = onDelete) { Text(textResources.getString(R.string.text_excluir), color = MaterialTheme.colorScheme.error) }
             }
         }
     }
@@ -180,8 +185,9 @@ private fun actionEmoji(action: ActionEntity): String = when (action.type) {
     else -> "✓"
 }
 
+@Composable
 private fun deletedLabel(value: Long?): String {
-    if (value == null) return "Excluído"
+    if (value == null) return androidx.compose.ui.res.stringResource(R.string.text_excluido)
     val local = Instant.ofEpochMilli(value).atZone(ZoneId.systemDefault()).toLocalDateTime()
     return "Excluído em ${local.format(DateTimeFormatter.ofPattern("dd/MM/yyyy · HH:mm"))}"
 }

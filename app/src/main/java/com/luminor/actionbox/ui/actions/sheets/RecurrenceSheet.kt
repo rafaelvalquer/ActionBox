@@ -1,5 +1,6 @@
 package com.luminor.actionbox.ui.actions.sheets
 
+import com.luminor.actionbox.R
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,8 @@ fun RecurrenceSheet(
     onDismiss: () -> Unit,
     onConfirm: (RecurrenceType, Set<Int>) -> Unit
 ) {
+    val textResources = androidx.compose.ui.platform.LocalContext.current.resources
+
     var type by remember(initialType) { mutableStateOf(initialType) }
     var days by remember(initialDays) { mutableStateOf(initialDays) }
 
@@ -43,15 +46,15 @@ fun RecurrenceSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Repetir", style = MaterialTheme.typography.titleLarge)
-            RecurrenceOption("Não repetir", type == RecurrenceType.NONE) { type = RecurrenceType.NONE; days = emptySet() }
-            RecurrenceOption("Todo dia", type == RecurrenceType.DAILY) { type = RecurrenceType.DAILY; days = emptySet() }
-            RecurrenceOption("Toda semana", type == RecurrenceType.WEEKLY && days.size <= 1) { chooseWeekly(false) }
-            RecurrenceOption("Todo mês", type == RecurrenceType.MONTHLY) { type = RecurrenceType.MONTHLY; days = emptySet() }
-            RecurrenceOption("Personalizado", type == RecurrenceType.WEEKLY && days.size > 1) { chooseWeekly(true) }
+            Text(textResources.getString(R.string.text_repetir), style = MaterialTheme.typography.titleLarge)
+            RecurrenceOption(textResources.getString(R.string.text_nao_repetir), type == RecurrenceType.NONE) { type = RecurrenceType.NONE; days = emptySet() }
+            RecurrenceOption(textResources.getString(R.string.text_todo_dia), type == RecurrenceType.DAILY) { type = RecurrenceType.DAILY; days = emptySet() }
+            RecurrenceOption(textResources.getString(R.string.text_toda_semana), type == RecurrenceType.WEEKLY && days.size <= 1) { chooseWeekly(false) }
+            RecurrenceOption(textResources.getString(R.string.text_todo_mes), type == RecurrenceType.MONTHLY) { type = RecurrenceType.MONTHLY; days = emptySet() }
+            RecurrenceOption(textResources.getString(R.string.text_personalizado), type == RecurrenceType.WEEKLY && days.size > 1) { chooseWeekly(true) }
 
             if (type == RecurrenceType.WEEKLY) {
-                Text("Dias da semana", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
+                Text(textResources.getString(R.string.text_dias_da_semana), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("S", "T", "Q", "Q", "S", "S", "D").forEachIndexed { index, label ->
                         val day = index + 1
@@ -72,7 +75,7 @@ fun RecurrenceSheet(
             Button(
                 onClick = { onConfirm(type, if (type == RecurrenceType.WEEKLY) days else emptySet()); onDismiss() },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-            ) { Text("Concluir") }
+            ) { Text(textResources.getString(R.string.text_concluir)) }
             androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 12.dp))
         }
     }
