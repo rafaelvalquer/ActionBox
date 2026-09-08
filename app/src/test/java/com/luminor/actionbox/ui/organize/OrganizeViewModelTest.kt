@@ -8,6 +8,17 @@ import org.junit.Test
 
 class OrganizeViewModelTest {
     @Test
+    fun acceptsLegacySetStateAndWritesBackSerializableLists() = runBlocking {
+        val handle = SavedStateHandle(mapOf("organize_expanded_routine_ids" to setOf(12L)))
+        val state = OrganizeSavedState(handle)
+
+        assertEquals(setOf(12L), state.expandedRoutineIds.first())
+        state.toggleRoutineExpanded(13L)
+
+        assertEquals(setOf(12L, 13L), handle.get<List<Long>>("organize_expanded_routine_ids")?.toSet())
+    }
+
+    @Test
     fun restoresSectionTagAccordionsAndIndependentScrollPositions() = runBlocking {
         val handle = SavedStateHandle()
         val first = OrganizeSavedState(handle)

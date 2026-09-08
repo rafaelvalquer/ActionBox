@@ -98,6 +98,7 @@ fun OrganizeScreen(
     val visibleRoutines = all
         .filter { RecurrenceCalculator.recurrenceType(it) != RecurrenceType.NONE && it.status != ActionStatus.ARCHIVED.name }
         .filter { ownerHasSelectedTag(OrganizationOwnerType.ACTION, it.id) }
+    val activeExpandedProjectIds = expandedProjectIds.intersect(visibleProjects.map { it.id }.toSet())
     val activeExpandedRoutineIds = expandedRoutineIds.intersect(visibleRoutines.map { it.id }.toSet())
     val visibleNotes = notes.filter { ownerHasSelectedTag(OrganizationOwnerType.ACTION, it.id) }
 
@@ -146,7 +147,7 @@ fun OrganizeScreen(
                                 ProjectRichCard(
                                     project = project,
                                     tasks = all.filter { it.projectId == project.id }.sortedWith(compareBy({ it.sortOrder }, { it.createdAt })),
-                                    expanded = project.id in expandedProjectIds,
+                                    expanded = project.id in activeExpandedProjectIds,
                                     onToggleExpanded = { organizeViewModel.toggleProjectExpanded(project.id) },
                                     onToggleTask = organizeViewModel::toggleProjectTask,
                                     onOpenProject = { onProjectOpen(project.id) }
@@ -168,7 +169,7 @@ fun OrganizeScreen(
                         }
                         2 -> {
                             if (visibleRoutines.isEmpty()) item { ActionEmptyState("🏋️", textResources.getString(R.string.text_nenhuma_rotina), if (selectedTagId == null) textResources.getString(R.string.text_crie_algo_recorrente_como_academia_segunda_quarta_e_sexta_as_19h) else textResources.getString(R.string.text_nenhuma_rotina_usa_esta_tag)) }
-                            items(visibleRoutines, key = { textResources.getString(R.string.text_routine , it.id, completions.size) }) { action ->
+                            items(visibleRoutines, key = { it.id }) { action ->
                                 val occursOn: (LocalDate) -> Boolean = { date -> com.luminor.actionbox.domain.routine.RoutineEvaluation.routineOccursOn(action, date, rules) }
                                 val completedOn: (LocalDate) -> Boolean = { date -> com.luminor.actionbox.domain.routine.RoutineEvaluation.isCompletedOn(action, date, completions) }
                                 val today = LocalDate.now()

@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.map
 
 /** Serializable UI state kept independently from Room observers. */
 internal class OrganizeSavedState(private val handle: SavedStateHandle) {
-    val expandedProjectIds = handle.getStateFlow(KEY_EXPANDED_PROJECTS, emptyList<Long>()).map { it.toSet() }
-    val expandedRoutineIds = handle.getStateFlow(KEY_EXPANDED_ROUTINES, emptyList<Long>()).map { it.toSet() }
+    val expandedProjectIds = idsFlow(KEY_EXPANDED_PROJECTS)
+    val expandedRoutineIds = idsFlow(KEY_EXPANDED_ROUTINES)
     val selectedSection = handle.getStateFlow(KEY_SELECTED_SECTION, 0)
     val selectedTagId = handle.getStateFlow<Long?>(KEY_SELECTED_TAG, null)
 
@@ -23,12 +23,16 @@ internal class OrganizeSavedState(private val handle: SavedStateHandle) {
     }
 
     fun toggleProjectExpanded(projectId: Long) {
-        handle[KEY_EXPANDED_PROJECTS] = handle.get<List<Long>>(KEY_EXPANDED_PROJECTS).orEmpty().toSet().toggle(projectId).toList()
+        handle[KEY_EXPANDED_PROJECTS] = handle.get<Any?>(KEY_EXPANDED_PROJECTS).toIdSet().toggle(projectId).toList()
     }
 
     fun toggleRoutineExpanded(routineId: Long) {
-        handle[KEY_EXPANDED_ROUTINES] = handle.get<List<Long>>(KEY_EXPANDED_ROUTINES).orEmpty().toSet().toggle(routineId).toList()
+        handle[KEY_EXPANDED_ROUTINES] = handle.get<Any?>(KEY_EXPANDED_ROUTINES).toIdSet().toggle(routineId).toList()
     }
+
+    private fun idsFlow(key: String) = handle
+        .getStateFlow<Any?>(key, emptyList<Long>())
+        .map { it.toIdSet() }
 
     private companion object {
         const val KEY_EXPANDED_PROJECTS = "organize_expanded_project_ids"
@@ -39,4 +43,8 @@ internal class OrganizeSavedState(private val handle: SavedStateHandle) {
 }
 
 private fun Set<Long>.toggle(id: Long): Set<Long> = if (id in this) this - id else this + id
+private fun Any?.toIdSet(): Set<Long> = (this as? Collection<*>)
+    ?.mapNotNull { (it as? Number)?.toLong() }
+    ?.toSet()
+    .orEmpty()
 private fun Int?.orZero() = this ?: 0
